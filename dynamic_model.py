@@ -46,8 +46,8 @@ from dataclasses import dataclass, field
 from typing import Callable, Optional
 import math
 
-from . import thermodata as td
-from . import refractory as rf
+import thermodata as td
+import refractory as rf
 
 
 K = 273.15   # deg C -> K offset

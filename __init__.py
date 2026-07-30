@@ -30,12 +30,12 @@ Modelling basis
 See the module docstrings and the README for details and calibration notes.
 """
 
-from .parameters import (Parameter, ParameterRegistry, default_parameters)
-from .static_model import StaticEAFModel, StaticResult
-from .dynamic_model import (DynamicEAFModel, DynamicResult, State, Charge,
+from parameters import (Parameter, ParameterRegistry, default_parameters)
+from static_model import StaticEAFModel, StaticResult
+from dynamic_model import (DynamicEAFModel, DynamicResult, State, Charge,
                             Schedule)
-from .diagnostics import Diagnostics, Check, BENCHMARKS
-from . import thermodata
+from diagnostics import Diagnostics, Check, BENCHMARKS
+import thermodata
 
 __all__ = [
     "Parameter", "ParameterRegistry", "default_parameters",

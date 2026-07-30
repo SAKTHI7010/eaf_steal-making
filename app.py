@@ -11,6 +11,8 @@ from dynamic_model import DynamicEAFModel
 from diagnostics import Diagnostics
 import sensitivity as S
 
+plt.style.use('dark_background')
+
 st.set_page_config(page_title="EAF Operator Desk", layout="wide")
 
 SENS_STUDIES = {

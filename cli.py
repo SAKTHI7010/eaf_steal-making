@@ -21,10 +21,10 @@ from __future__ import annotations
 import json
 import sys
 
-from .parameters import default_parameters
-from .static_model import StaticEAFModel
-from .dynamic_model import DynamicEAFModel
-from .diagnostics import Diagnostics
+from parameters import default_parameters
+from static_model import StaticEAFModel
+from dynamic_model import DynamicEAFModel
+from diagnostics import Diagnostics
 
 
 BANNER = r"""

@@ -36,11 +36,11 @@ matplotlib.use("TkAgg")
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 
-from .parameters import default_parameters
-from .static_model import StaticEAFModel
-from .dynamic_model import DynamicEAFModel
-from .diagnostics import Diagnostics
-from . import sensitivity as S
+from parameters import default_parameters
+from static_model import StaticEAFModel
+from dynamic_model import DynamicEAFModel
+from diagnostics import Diagnostics
+import sensitivity as S
 
 
 # colours ------------------------------------------------------------------- #

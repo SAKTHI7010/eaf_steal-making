@@ -18,9 +18,9 @@ and by the GUI. No plotting here -> no backend assumptions.
 
 from __future__ import annotations
 
-from .parameters import default_parameters
-from .static_model import StaticEAFModel
-from .dynamic_model import DynamicEAFModel
+from parameters import default_parameters
+from static_model import StaticEAFModel
+from dynamic_model import DynamicEAFModel
 
 
 # --------------------------------------------------------------------------- #
