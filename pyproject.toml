@@ -11,6 +11,7 @@ requires-python = ">=3.9"
 dependencies = [
     "matplotlib",
     "numpy",
+    "streamlit",
 ]
 # NOTE: the GUI also needs tkinter, which is NOT a pip package. It ships with
 # most Python installs; on Debian/Ubuntu install the system package:
