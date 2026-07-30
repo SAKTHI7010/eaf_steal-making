@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartEAF&trade; — EAF Digital Twin &amp; Process Optimizer | Extractmet</title>
+<style>
+:root{
+  --bg:#0e1620; --bg2:#16212e; --panel:#1b2836; --panel2:#22323f;
+  --ink:#e7eef5; --dim:#9fb3c8; --line:#2c3d4d;
+  --accent:#00b4d8; --accent2:#48cae4; --gold:#ffb703;
+  --ok:#2e9e5b; --warn:#e8930c; --act:#d64545;
+  --steel:#e46a3f; --slag:#6aa84f; --scrap:#8a94a6; --arc:#7fd0ff;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:'Segoe UI',Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:14px}
+header{background:linear-gradient(90deg,#0b1017,#16212e);border-bottom:2px solid var(--accent);
+  padding:10px 18px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:50}
+.logo{background:var(--accent);color:#062733;font-weight:800;padding:6px 12px;border-radius:6px;font-size:18px;letter-spacing:1px}
+header h1{font-size:17px;margin:0;font-weight:700}
+header .sub{color:var(--dim);font-size:12px}
+header .spacer{flex:1}
+header .co{color:var(--gold);font-weight:700;font-size:13px}
+nav{display:flex;gap:2px;background:var(--bg2);padding:0 10px;border-bottom:1px solid var(--line);position:sticky;top:52px;z-index:40;flex-wrap:wrap}
+nav button{background:none;border:none;color:var(--dim);padding:11px 16px;cursor:pointer;font-size:13px;font-weight:600;
+  border-bottom:3px solid transparent}
+nav button:hover{color:var(--ink)}
+nav button.active{color:var(--accent2);border-bottom-color:var(--accent)}
+main{padding:16px;max-width:1500px;margin:0 auto}
+.tab{display:none}
+.tab.active{display:block;animation:fade .25s}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:1fr 1fr}
+.g3{grid-template-columns:1fr 1fr 1fr}
+.g4{grid-template-columns:repeat(4,1fr)}
+@media(max-width:1100px){.g3,.g4{grid-template-columns:1fr 1fr}.g2{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px}
+.card h3{margin:0 0 10px;font-size:14px;color:var(--accent2);border-bottom:1px solid var(--line);padding-bottom:7px}
+.card h4{margin:12px 0 6px;font-size:12px;color:var(--gold);text-transform:uppercase;letter-spacing:.5px}
+.kpi{background:var(--panel2);border-radius:8px;padding:12px;text-align:center;border:1px solid var(--line)}
+.kpi .v{font-size:24px;font-weight:800;color:var(--accent2)}
+.kpi .l{font-size:11px;color:var(--dim);margin-top:3px}
+.kpi.ok .v{color:#5fd68a}.kpi.warn .v{color:#ffc04d}.kpi.act .v{color:#ff7a7a}
+.btn{background:var(--accent);color:#062733;border:none;padding:11px 22px;border-radius:8px;font-weight:800;
+  cursor:pointer;font-size:14px}
+.btn:hover{background:var(--accent2)}
+.btn.sec{background:var(--panel2);color:var(--ink);border:1px solid var(--line)}
+canvas{width:100%;background:var(--bg2);border-radius:8px;display:block}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+th{color:var(--dim);font-weight:600;background:var(--bg2)}
+tr:hover td{background:var(--panel2)}
+.param-sec{margin-bottom:8px;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.param-sec>summary{background:var(--panel2);padding:10px 14px;cursor:pointer;font-weight:700;color:var(--accent2);font-size:13px;list-style:none}
+.param-sec>summary::-webkit-details-marker{display:none}
+.param-sec>summary::before{content:'▸ ';color:var(--accent)}
+.param-sec[open]>summary::before{content:'▾ '}
+.param-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px 14px;padding:12px}
+.pf{display:flex;flex-direction:column;gap:2px;position:relative}
+.pf label{font-size:11.5px;color:var(--dim);display:flex;align-items:center;gap:5px}
+.pf input{background:var(--bg);border:1px solid var(--line);color:var(--ink);border-radius:5px;padding:6px 8px;font-size:13px;font-family:inherit}
+.pf input:focus{border-color:var(--accent);outline:none}
+.pf .u{font-size:10px;color:var(--accent);font-weight:600}
+.help{width:15px;height:15px;border-radius:50%;background:var(--panel2);color:var(--accent2);font-size:10px;
+  display:inline-flex;align-items:center;justify-content:center;cursor:help;border:1px solid var(--line);font-weight:700}
+.help:hover{background:var(--accent);color:#062733}
+.tip{position:absolute;z-index:100;background:#05252f;border:1px solid var(--accent);border-radius:8px;padding:10px 12px;
+  font-size:11.5px;color:var(--ink);width:280px;bottom:100%;left:0;margin-bottom:6px;display:none;box-shadow:0 6px 20px rgba(0,0,0,.5);line-height:1.5;pointer-events:none}
+.pf:hover .tip{display:block}
+.pf input:focus ~ .tip{display:none}
+.tip .tv{color:var(--gold)}
+.chip{display:inline-block;background:var(--panel2);border:1px solid var(--line);border-radius:20px;padding:3px 11px;font-size:11px;margin:2px;color:var(--dim)}
+.badge{padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700}
+.b-ok{background:rgba(46,158,91,.2);color:#5fd68a}.b-warn{background:rgba(232,147,12,.2);color:#ffc04d}.b-act{background:rgba(214,69,69,.2);color:#ff7a7a}
+.b-charge{background:rgba(0,180,216,.18);color:var(--accent2)}.b-phase{background:rgba(255,183,3,.18);color:var(--gold)}
+.note{font-size:12px;color:var(--dim);line-height:1.6}
+.legend{display:flex;flex-wrap:wrap;gap:10px;font-size:11px;margin-top:6px}
+.legend span{display:flex;align-items:center;gap:4px}
+.legend i{width:12px;height:3px;border-radius:2px;display:inline-block}
+.hero{background:linear-gradient(135deg,#15222f,#0d1620);border:1px solid var(--line);border-radius:12px;padding:18px;margin-bottom:14px}
+.hero h2{margin:0 0 6px;font-size:20px}
+.hero p{margin:0;color:var(--dim);font-size:13px;line-height:1.6}
+.tag{display:inline-block;background:var(--accent);color:#062733;font-size:10px;font-weight:800;padding:2px 8px;border-radius:4px;vertical-align:middle;margin-left:8px}
+.svgwrap{background:radial-gradient(circle at 50% 40%,#1a2836,#0c141d);border-radius:10px;border:1px solid var(--line);padding:6px}
+.readout{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.readout div{background:var(--panel2);border-radius:6px;padding:8px 10px;border:1px solid var(--line)}
+.readout .rl{font-size:10.5px;color:var(--dim)}
+.readout .rv{font-size:16px;font-weight:700;color:var(--accent2)}
+footer{color:var(--dim);font-size:11px;text-align:center;padding:20px;border-top:1px solid var(--line);margin-top:20px}
+.small{font-size:11px;color:var(--dim)}
+select{background:var(--bg);border:1px solid var(--line);color:var(--ink);border-radius:5px;padding:6px;font-family:inherit}
+.arc-anim{animation:flick .3s infinite alternate}
+@keyframes flick{from{opacity:.55}to{opacity:1}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">SmartEAF&trade;</div>
+  <div><h1>Electric Arc Furnace — Digital Twin &amp; Process Optimizer</h1>
+    <div class="sub">Static &amp; dynamic first-principles model · operator decision support · Reference: Industry-X</div></div>
+  <div class="spacer"></div>
+  <div class="co">Extractmet Private Limited</div>
+</header>
+<nav id="nav">
+  <button data-tab="schematic" class="active">⚙ Reactor Schematic</button>
+  <button data-tab="inputs">✎ Inputs / Parameters</button>
+  <button data-tab="static">▤ Static Model</button>
+  <button data-tab="dynamic">▶ Dynamic Model</button>
+  <button data-tab="events">☰ Event Log</button>
+  <button data-tab="help">? Help &amp; Model</button>
+</nav>
+<main>
+
+<!-- ============ SCHEMATIC TAB ============ -->
+<section id="tab-schematic" class="tab active">
+  <div class="hero">
+    <h2>Industry-X Electric Arc Furnace <span class="tag">LIVE DIGITAL TWIN</span></h2>
+    <p>Interactive cross-section of the EAF reactor. Values update from the latest simulation. Hover parts for details.
+       Run the <b>Dynamic Model</b> to animate the heat and populate live readouts, or the <b>Static Model</b> for a per-heat balance.</p>
+  </div>
+  <div class="grid g2" style="grid-template-columns:1.35fr 1fr">
+    <div class="card">
+      <h3>Furnace cross-section &amp; instrumentation</h3>
+      <div class="svgwrap" id="schematicHolder"></div>
+      <div class="legend" id="schematicLegend"></div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom:14px">
+        <h3>Live process readout</h3>
+        <div class="readout" id="liveReadout"></div>
+      </div>
+      <div class="card">
+        <h3>Furnace &amp; refractory build-up</h3>
+        <div id="refBar"></div>
+        <div class="note" id="refNote" style="margin-top:8px"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ INPUTS TAB ============ -->
+<section id="tab-inputs" class="tab">
+  <div class="card" style="margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+    <button class="btn" onclick="runStaticUI()">▤ Run Static</button>
+    <button class="btn" onclick="runDynamicUI()">▶ Run Dynamic</button>
+    <button class="btn sec" onclick="resetParams()">↺ Reset defaults</button>
+    <button class="btn sec" onclick="loadPreset('lowC')">Preset: Low-C heat</button>
+    <button class="btn sec" onclick="loadPreset('dri')">Preset: High-DRI</button>
+    <button class="btn sec" onclick="loadPreset('hotmetal')">Preset: Hot-metal charge</button>
+    <span class="small" id="inputStatus">Every operating &amp; technical parameter is editable — hover the “?” for its help file.</span>
+  </div>
+  <div id="paramContainer"></div>
+</section>
+
+<!-- ============ STATIC TAB ============ -->
+<section id="tab-static" class="tab">
+  <div class="card" style="margin-bottom:12px;display:flex;gap:10px;align-items:center">
+    <button class="btn" onclick="runStaticUI()">▤ Run Static Mass &amp; Energy Balance</button>
+    <span class="small">Per-heat planning balance: yield, fluxes, oxygen, slag chemistry and energy.</span>
+  </div>
+  <div class="grid g4" id="staticKPIs" style="margin-bottom:14px"></div>
+  <div class="grid g3">
+    <div class="card"><h3>Energy demand (sinks)</h3><canvas id="cStaticSinks" height="230"></canvas></div>
+    <div class="card"><h3>Non-electrical energy (sources)</h3><canvas id="cStaticSources" height="230"></canvas></div>
+    <div class="card"><h3>Final slag composition</h3><canvas id="cStaticSlag" height="230"></canvas></div>
+  </div>
+  <div class="grid g2" style="margin-top:14px">
+    <div class="card"><h3>Inputs vs. outputs (mass)</h3><canvas id="cStaticMass" height="240"></canvas></div>
+    <div class="card"><h3>Tapped-steel composition &amp; balance</h3><div id="staticTables"></div></div>
+  </div>
+</section>
+
+<!-- ============ DYNAMIC TAB ============ -->
+<section id="tab-dynamic" class="tab">
+  <div class="card" style="margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+    <button class="btn" onclick="runDynamicUI()">▶ Run Time-Resolved Simulation</button>
+    <label class="small">Mode:
+      <select id="dynMode"><option value="endpoint">Run to endpoint (aim T &amp; C)</option>
+      <option value="fixed">Fixed power-on time</option></select></label>
+    <span class="small" id="dynStatus"></span>
+  </div>
+  <div class="grid g4" id="dynKPIs" style="margin-bottom:14px"></div>
+  <div class="grid g2">
+    <div class="card"><h3>Melting &amp; slag build-up</h3><canvas id="cMelt" height="230"></canvas><div class="legend" id="lMelt"></div></div>
+    <div class="card"><h3>Temperatures (bath, solid, shell)</h3><canvas id="cTemp" height="230"></canvas><div class="legend" id="lTemp"></div></div>
+    <div class="card"><h3>Bath chemistry (C, Si, Mn, P)</h3><canvas id="cChem" height="230"></canvas><div class="legend" id="lChem"></div></div>
+    <div class="card"><h3>Slag evolution &amp; basicity</h3><canvas id="cSlag" height="230"></canvas><div class="legend" id="lSlag"></div></div>
+    <div class="card"><h3>Slag composition (wt-%)</h3><canvas id="cSlagWt" height="230"></canvas><div class="legend" id="lSlagWt"></div></div>
+    <div class="card"><h3>Cumulative energy &amp; foaming</h3><canvas id="cEnergy" height="230"></canvas><div class="legend" id="lEnergy"></div></div>
+    <div class="card"><h3>Power input &amp; heat-loss breakdown</h3><canvas id="cLoss" height="230"></canvas><div class="legend" id="lLoss"></div></div>
+    <div class="card"><h3>Decarburisation vs. oxygen use</h3><canvas id="cDecarb" height="230"></canvas><div class="legend" id="lDecarb"></div></div>
+    <div class="card"><h3>Lime dissolution &amp; dephosphorisation</h3><canvas id="cDissol" height="230"></canvas><div class="legend" id="lDissol"></div></div>
+    <div class="card"><h3>Solid &rarr; liquid conversion (phase %)</h3><canvas id="cPhase" height="230"></canvas><div class="legend" id="lPhase"></div></div>
+    <div class="card"><h3>Specific energy &amp; cumulative total</h3><canvas id="cSpec" height="230"></canvas><div class="legend" id="lSpec"></div></div>
+    <div class="card"><h3>Off-gas (CO / CO&#8322;) &amp; oxygen use</h3><canvas id="cOffgas" height="230"></canvas><div class="legend" id="lOffgas"></div></div>
+    <div class="card"><h3>Basicity B2 / B3 &amp; lime</h3><canvas id="cB23" height="230"></canvas><div class="legend" id="lB23"></div></div>
+    <div class="card"><h3>Foaming index &amp; slag FeO</h3><canvas id="cFoamFeO" height="230"></canvas><div class="legend" id="lFoamFeO"></div></div>
+  </div>
+  <div class="grid g3" style="margin-top:14px">
+    <div class="card"><h3>Final tapped steel</h3><div id="finalSteel"></div></div>
+    <div class="card"><h3>Final slag</h3><div id="finalSlag"></div></div>
+    <div class="card"><h3>Off-gas &amp; balance</h3><div id="finalGas"></div></div>
+  </div>
+</section>
+
+<!-- ============ EVENT LOG TAB ============ -->
+<section id="tab-events" class="tab">
+  <div class="card">
+    <h3>Heat event log — additions, phase changes &amp; milestones (with timings)</h3>
+    <p class="small">Chronological record generated by the dynamic simulation. Run the Dynamic Model to populate.</p>
+    <table><thead><tr><th style="width:90px">Time</th><th style="width:150px">Phase</th><th>Event</th><th>Detail</th></tr></thead>
+    <tbody id="eventBody"><tr><td colspan="4" class="small">No simulation run yet.</td></tr></tbody></table>
+  </div>
+</section>
+
+<!-- ============ HELP TAB ============ -->
+<section id="tab-help" class="tab">
+  <div class="grid g2">
+    <div class="card">
+      <h3>About SmartEAF&trade;</h3>
+      <p class="note">SmartEAF&trade; is a first-principles digital twin of the electric arc furnace developed by
+      <b>Extractmet Private Limited</b>. It couples a per-heat <b>static mass &amp; energy balance</b> with a
+      time-resolved <b>dynamic model</b> that resolves, at every time step, the coupled elemental mass balances,
+      heat balances, reaction thermodynamics and kinetics, heat and mass transfer, scrap-melting and dissolution
+      kinetics, slag foaming, and coupled conduction–convection–radiation heat loss through the refractory wall.
+      The model is calibrated and validated against literature-typical plant data (reference plant anonymised as
+      <b>Industry-X</b>).</p>
+      <h4>Modelling basis</h4>
+      <ul class="note">
+        <li><b>Dynamic zones:</b> solid scrap, liquid steel, slag and gas, each with its own energy balance and a
+        continuous heating/melting split (after Logar et al., ISIJ 2012).</li>
+        <li><b>Thermochemistry &amp; kinetics:</b> decarburisation (O₂-limited &amp; mass-transfer-limited regimes),
+        Si/Mn/P oxidation, FeO formation and carbon reduction, CO post-combustion, all as rate laws toward equilibrium.</li>
+        <li><b>Dissolution kinetics:</b> lime dissolves into the slag over time (basicity builds), scrap melts by an
+        immersion + arc-exposure closure.</li>
+        <li><b>Refractory heat loss:</b> multi-layer 1-D conduction (working lining / safety lining / insulation / shell)
+        coupled to external convection and radiation, solved for shell and interface temperatures.</li>
+      </ul>
+      <h4>Validation (vs literature-typical bands)</h4>
+      <div id="helpValidation" class="note"></div>
+    </div>
+    <div class="card">
+      <h3>Parameter reference (help files)</h3>
+      <input id="helpSearch" placeholder="filter parameters…" style="width:100%;margin-bottom:8px;background:var(--bg);border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:8px">
+      <div id="helpList" style="max-height:640px;overflow:auto"></div>
+    </div>
+  </div>
+</section>
+
+</main>
+<footer>
+  SmartEAF&trade; — Electric Arc Furnace Digital Twin &amp; Process Optimizer &nbsp;|&nbsp; © Extractmet Private Limited &nbsp;|&nbsp;
+  Runs fully offline in the browser · reference plant anonymised as Industry-X · figures for guidance, calibrate to your furnace before use.
+</footer>
+<script>
+/* =========================================================================
+   SmartEAF model core (JavaScript port of the Extractmet EAF model)
+   ========================================================================= */
+const MM={C:12.011,O2:31.998,Si:28.085,Mn:54.938,Fe:55.845,P:30.974,
+  CaO:56.077,MgO:40.304,SiO2:60.083,MnO:70.937,FeO:71.844,P2O5:141.944,
+  Al2O3:101.961,CO:28.010,CO2:44.009};
+const O2TO={C_CO:0.750,C_CO2:0.375,Si:0.878,Mn:3.433,Fe:3.490};
+const CHEM={C_CO:9200,C_CO2:32762,CO_CO2:10103,Si:32435,Mn:7011,Fe:5025,P:24090};
+const CP_SOLID=0.70,CP_LIQ=0.82,L_FUS=272,CP_SLAG=1.25,L_FUS_SLAG=209;
+const CPG={CO:1.30,CO2:1.25,N2:1.30};
+const T_PURE=1538, LIQD={C:80,Si:13,Mn:4.9,P:30,S:25,Cu:5};
+const O2DENS=1.429, NGDENS=0.717, NGLHV=50000, SIGMA=5.670374e-8, K=273.15;
+
+function liquidusC(comp){let d=0;for(const e in LIQD)d+=(LIQD[e]||0)*(comp[e]||0);return T_PURE-d;}
+
+/* ---- parameter metadata (label, unit, section, min, max, default, help) --- */
+const PMETA=[
+ // Charge
+ ["scrap_charge_mass","Scrap charge","t","Charge",40,140,140,"Total metallic scrap charged (all buckets), tonnes. Drives mass & energy balance and, with yield, sets tap weight."],
+ ["scrap_C","Scrap carbon","wt-%","Charge",0,2,0.25,"Average carbon in the scrap mix. Higher C adds chemical energy but needs more oxygen to refine."],
+ ["scrap_Si","Scrap silicon","wt-%","Charge",0,1,0.15,"Silicon in scrap; oxidises early to SiO2, adds chemical energy, increases lime demand."],
+ ["scrap_Mn","Scrap manganese","wt-%","Charge",0,2,0.35,"Manganese in scrap; partitions between metal and slag."],
+ ["scrap_P","Scrap phosphorus","wt-%","Charge",0,0.2,0.02,"Phosphorus in scrap; removed to slag as P2O5 given a basic, oxidising slag."],
+ ["scrap_S","Scrap sulphur","wt-%","Charge",0,0.2,0.03,"Sulphur in scrap; largely stays in steel in the EAF (removed in ladle)."],
+ ["scrap_Cu","Scrap copper","wt-%","Charge",0,1,0.25,"Copper (tramp) in scrap; cannot be removed, limits achievable grades."],
+ ["dirt_silica","Dirt/ash silica","kg/t","Charge",0,25,12,"SiO2 entering with scrap dirt/rust/sand/ash — usually a bigger silica source than dissolved Si; drives slag volume & lime demand."],
+ ["dri_mass","DRI / HBI charged","t","Charge",0,80,0,"Direct-reduced iron / HBI charged; dilutes tramp elements but adds gangue and FeO to reduce."],
+ ["dri_metallization","DRI metallization","%","Charge",80,99,94,"Fraction of DRI iron already metallic; the rest is FeO that must be reduced (energy/carbon)."],
+ ["dri_carbon","DRI carbon","wt-%","Charge",0,5,2,"Carbon combined in the DRI; helps reduce its FeO and adds chemical energy."],
+ ["dri_gangue","DRI gangue","wt-%","Charge",0,12,4.5,"Acid gangue (SiO2+Al2O3) in the DRI; reports to slag, raises lime demand."],
+ ["hot_metal_mass","Hot metal charged","t","Charge",0,60,0,"Liquid pig iron charged; large sensible + chemical energy, cuts electricity but needs more O2/lime."],
+ ["hot_metal_carbon","Hot metal carbon","wt-%","Charge",3,5,4.3,"Carbon in charged hot metal; excess over aim must be blown out."],
+ ["hot_metal_temperature","Hot metal temperature","degC","Charge",1200,1500,1350,"Delivery temperature of hot metal; sensible heat credited to the balance."],
+ // Fluxes
+ ["lime_charged","Lime (CaO) charged","kg","Fluxes & additions",0,6000,2900,"Burnt lime charged; neutralises acid oxides to form a basic, P-removing, protective slag. Dissolves over time."],
+ ["dolomite_charged","Dolomitic lime","kg","Fluxes & additions",0,4000,2400,"Supplies MgO to saturate the slag and protect the MgO-C lining."],
+ ["charge_carbon","Charge (bucket) carbon","kg","Fluxes & additions",0,4000,1200,"Carbon charged with scrap; early chemical energy, FeO reduction, builds the CO boil for foaming."],
+ ["injected_carbon","Injected carbon","kg","Fluxes & additions",0,3000,800,"Carbon lanced into the slag during refining; reacts with O2/FeO to foam the slag and add energy."],
+ // Oxygen & burners
+ ["oxygen_total","Oxygen total (static)","Nm3","Oxygen & burners",500,6000,4600,"Total O2 blown per heat (static planning). Oxidises C/Si/Mn/Fe/P; too much over-oxidises the bath."],
+ ["oxygen_flow_rate","Oxygen flow (dynamic)","Nm3/h","Oxygen & burners",0,6000,3900,"O2 supply rate driving instantaneous decarburisation and chemical power in the dynamic model."],
+ ["natural_gas","Natural gas (burners)","Nm3","Oxygen & burners",0,2000,250,"Gas fired through oxy-fuel burners to cut cold spots and add early chemical energy."],
+ // Electrical & timing
+ ["transformer_power","Transformer power","MW","Electrical & timing",0,200,110,"Active electrical power set-point; integrated over power-on time. Higher power shortens tap-to-tap."],
+ ["power_on_time","Power-on time","min","Electrical & timing",20,120,48,"Arc-energised time per heat (fixed-profile mode)."],
+ ["power_off_time","Power-off time","min","Electrical & timing",0,60,8,"Non-productive dead time (charging, tapping, delays); added to tap-to-tap and continuous losses."],
+ // Targets
+ ["target_tap_temperature","Aim tap temperature","degC","Targets",1550,1700,1630,"Target liquid-steel temperature at tap; must clear liquidus plus casting superheat."],
+ ["target_carbon","Aim carbon","wt-%","Targets",0.01,1,0.07,"Target dissolved carbon at tap; sets refining extent and, with O2 activity, alloy recovery."],
+ ["target_basicity","Aim basicity B2","-","Targets",1,3.5,2,"Target CaO/SiO2 used by the static model to size lime; higher improves P removal & lining life."],
+ // Furnace & refractory
+ ["furnace_capacity","Furnace capacity","t","Furnace & refractory",5,400,130,"Nominal tap weight; reference for specific figures and range checks."],
+ ["refractory_area","Refractory hot-face area","m2","Furnace & refractory",5,200,55,"Refractory-lined lower-vessel area exposed to bath/slag (hearth + slag line) for the wall heat-loss calc."],
+ ["working_lining_thickness","Working lining thickness","mm","Furnace & refractory",80,800,450,"Consumable hot-face (MgO-C) thickness; thicker lowers heat loss and extends campaign."],
+ ["working_lining_k","Working lining k","W/mK","Furnace & refractory",2,40,12,"Thermal conductivity of the hot-face refractory (MgO-C is fairly conductive)."],
+ ["safety_lining_thickness","Safety lining thickness","mm","Furnace & refractory",40,400,200,"Permanent backup-lining thickness (e.g. burnt magnesia)."],
+ ["safety_lining_k","Safety lining k","W/mK","Furnace & refractory",1,15,3.5,"Thermal conductivity of the backup lining."],
+ ["insulation_thickness","Insulation thickness","mm","Furnace & refractory",0,200,40,"Insulating layer thickness; the dominant thermal resistance."],
+ ["insulation_k","Insulation k","W/mK","Furnace & refractory",0.05,2,0.25,"Insulation conductivity (very low → most of the temperature drop here)."],
+ ["shell_thickness","Steel shell thickness","mm","Furnace & refractory",10,120,40,"Outer steel-shell thickness."],
+ ["shell_k","Steel shell k","W/mK","Furnace & refractory",20,60,45,"Steel-shell conductivity."],
+ ["shell_emissivity","Shell emissivity","-","Furnace & refractory",0.1,1,0.80,"Radiative emissivity of the oxidised shell for the external radiation loss."],
+ ["convection_coefficient","Shell convection coeff.","W/m2K","Furnace & refractory",3,60,15,"External natural/forced convective coefficient at the shell surface."],
+ ["panel_heat_loss","Water-panel/roof loss","MW","Furnace & refractory",0.5,15,4.5,"Quasi-steady heat removed by water-cooled panels and roof when hot."],
+ ["offgas_temperature","Off-gas temperature","degC","Furnace & refractory",800,1800,1350,"Temperature at which CO/CO2/N2 leave, setting the off-gas sensible-heat loss."],
+ ["ambient_temperature","Ambient / charge temp","degC","Furnace & refractory",-20,800,25,"Reference temperature for sensible heat and cold-scrap start; raise for scrap preheating."],
+ // Efficiencies & kinetics
+ ["electrical_efficiency","Electrical efficiency","-","Efficiencies & kinetics",0.80,0.99,0.93,"Grid→arc efficiency after transformer/cable/electrode losses."],
+ ["arc_transfer_efficiency","Arc transfer (foamed)","-","Efficiencies & kinetics",0.40,0.95,0.90,"Arc-to-bath transfer with a well-foamed/shielded arc."],
+ ["arc_transfer_bare","Arc transfer (bare)","-","Efficiencies & kinetics",0.30,0.80,0.40,"Arc-to-bath transfer with an exposed open arc (much radiates to panels)."],
+ ["post_combustion_ratio","Post-combustion ratio","-","Efficiencies & kinetics",0,0.8,0.25,"Share of evolved CO burned to CO2 in the freeboard, recovering extra energy."],
+ ["post_combustion_efficiency","Post-comb. heat return","-","Efficiencies & kinetics",0.2,0.9,0.60,"Fraction of post-combustion heat returned to the bath."],
+ ["electrode_consumption_rate","Electrode consumption","kg/t","Efficiencies & kinetics",0.8,4,1.6,"Graphite electrode consumption per tonne of steel."],
+ ["iron_oxidation_fraction","Fe→slag fraction","-","Efficiencies & kinetics",0.01,0.15,0.015,"Fraction of metallic Fe oxidised to FeO in slag — the dominant yield loss."],
+ ["dust_rate","Dust generation","kg/t","Efficiencies & kinetics",5,30,16,"Captured dust/fume per tonne; a yield and material loss."],
+ ["mn_slag_partition","Mn→slag partition","-","Efficiencies & kinetics",0.2,0.9,0.55,"Fraction of Mn oxidised to slag under oxidising EAF conditions."],
+ ["decarb_critical_carbon","Decarb critical C","wt-%","Efficiencies & kinetics",0.1,0.6,0.30,"Carbon below which decarburisation becomes mass-transfer-limited and slows."],
+ ["decarb_mass_transfer_coeff","Decarb rate constant","1/s","Efficiencies & kinetics",0.001,0.1,0.03,"First-order constant for mass-transfer-limited decarburisation."],
+ ["scrap_melt_htc","Scrap-melt HTC (h·A)","kW/K","Efficiencies & kinetics",10,500,250,"Immersion-melting coefficient: how fast bath superheat melts remaining solid."],
+ ["lime_dissolution_rate","Lime dissolution rate","1/s","Efficiencies & kinetics",0.0005,0.05,0.004,"First-order lime→slag dissolution; controls how fast basicity builds."],
+ ["si_removal_rate","Si oxidation rate","1/s","Efficiencies & kinetics",0.001,0.2,0.020,"First-order Si oxidation rate constant."],
+ ["mn_removal_rate","Mn oxidation rate","1/s","Efficiencies & kinetics",0.001,0.1,0.010,"First-order Mn oxidation rate toward equilibrium."],
+ ["p_removal_rate","P removal rate","1/s","Efficiencies & kinetics",0,0.05,0.006,"First-order dephosphorisation rate (favoured by high B, FeO, lower T)."],
+ ["feo_reduction_rate","FeO reduction rate","1/(kg·s)","Efficiencies & kinetics",1e-7,1e-4,1e-6,"Rate constant for FeO+C→Fe+CO (foaming & iron recovery)."],
+["feo_equilibrium_factor","FeO–C equilibrium factor","-","Efficiencies & kinetics",0.3,3.0,1.4,"Multiplier on the Turkdogan carbon–oxygen product (%FeO)(%C)=K_CO(T) (1.8/1.25/0.89 at 1500/1600/1700 °C). >1 = more oxidising slag (higher tap FeO at a given carbon). CALIBRATE."],
+["slag_feo_max","Slag FeO cap","%","Efficiencies & kinetics",25,60,45,"Upper bound on (%FeO)eq=K_CO/[%C] so it stays finite as carbon → 0. Overblown heats reach ~40–45% FeO."],
+["scrap_rust_feo","Scrap rust (as FeO)","kg/t","Charge",0,40,14,"Rust/mill-scale on the scrap reporting to slag as FeO at charge — sets the high meltdown FeO that carbon injection then reduces. Clean scrap ~5, rusty ~20-30 kg/t."],
+["decarb_o2_efficiency_max","Decarb O₂ efficiency","-","Efficiencies & kinetics",0.6,1.0,0.90,"Max fraction of lanced O₂ that reacts with carbon; below critical C the rest oxidises Fe → FeO (drives tap FeO up)."],
+ ["foaming_co_reference","Foaming CO reference","kg/s","Efficiencies & kinetics",0.1,2,0.45,"CO evolution rate giving fully developed foam."],
+ ["sim_timestep","Simulation time step","s","Efficiencies & kinetics",0.05,2,0.5,"Fixed Euler time step of the dynamic model."],
+];
+function defaultParams(){const p={};PMETA.forEach(m=>p[m[0]]=m[6]);return p;}
+function scrapComp(p){return{C:p.scrap_C,Si:p.scrap_Si,Mn:p.scrap_Mn,P:p.scrap_P,S:p.scrap_S,Cu:p.scrap_Cu};}
+
+/* ---- refractory wall heat loss (multi-layer conduction + conv + rad) ------ */
+function wallHeatLoss(ThotC,TambC,layers,area,hconv,emis){
+  const Th=ThotC+K,Ta=TambC+K;
+  if(Th<=Ta||area<=0)return{Q:0,flux:0,shell:TambC,temps:[ThotC],cf:0,rf:0};
+  let Rwa=0;layers.forEach(L=>Rwa+=(L.t/1000)/L.k);const Rwall=Rwa/area;
+  let Ts=Ta+0.2*(Th-Ta),Q=0;
+  for(let i=0;i<80;i++){const hr=emis*SIGMA*(Ts*Ts+Ta*Ta)*(Ts+Ta);const Rext=1/((hconv+hr)*area);
+    Q=(Th-Ta)/(Rwall+Rext);const Tn=Ta+Q*Rext;if(Math.abs(Tn-Ts)<0.05){Ts=Tn;break;}Ts=0.5*Ts+0.5*Tn;}
+  const qc=hconv*area*(Ts-Ta);const hr=emis*SIGMA*(Ts*Ts+Ta*Ta)*(Ts+Ta);const qr=hr*area*(Ts-Ta);
+  const qe=(qc+qr)>0?qc+qr:1;let temps=[Th],T=Th;layers.forEach(L=>{T-=Q*((L.t/1000)/L.k/area);temps.push(T);});
+  return{Q:Q,flux:Q/area,shell:Ts-K,temps:temps.map(x=>x-K),cf:qc/qe,rf:qr/qe};
+}
+function wallLayers(p){return[{name:"Working lining",t:p.working_lining_thickness,k:p.working_lining_k},
+  {name:"Safety lining",t:p.safety_lining_thickness,k:p.safety_lining_k},
+  {name:"Insulation",t:p.insulation_thickness,k:p.insulation_k},
+  {name:"Steel shell",t:p.shell_thickness,k:p.shell_k}];}
+
+/* ========================= STATIC MODEL ================================== */
+function runStatic(p){
+  const Tamb=p.ambient_temperature, Ttap=p.target_tap_temperature;
+  const m_scrap=p.scrap_charge_mass*1000, comp=scrapComp(p);
+  const el={};["C","Si","Mn","P","S","Cu"].forEach(e=>el[e]=m_scrap*(comp[e]||0)/100);
+  let fe_scrap=m_scrap-Object.values(el).reduce((a,b)=>a+b,0);
+  // DRI
+  const m_dri=p.dri_mass*1000, dm=p.dri_metallization/100, dC=p.dri_carbon/100, dg=p.dri_gangue/100;
+  const fe_tot_dri=m_dri*(1-dg-dC), fe_met_dri=fe_tot_dri*dm;
+  const feo_dri=(fe_tot_dri-fe_met_dri)/MM.Fe*MM.FeO, c_dri=m_dri*dC, gangue_dri=m_dri*dg;
+  el.C+=c_dri;
+  // hot metal
+  const m_hm=p.hot_metal_mass*1000, hmC=p.hot_metal_carbon/100, hmSi=0.006, hmMn=0.003;
+  const fe_hm=m_hm*(1-hmC-hmSi-hmMn); el.C+=m_hm*hmC; el.Si+=m_hm*hmSi; el.Mn+=m_hm*hmMn;
+  const fe_metallic=fe_scrap+fe_met_dri+fe_hm;
+  const metallic_in=fe_metallic+Object.values(el).reduce((a,b)=>a+b,0);
+  const Ctar=p.target_carbon/100;
+  const si_rem=el.Si*0.98, mn_rem=el.Mn*p.mn_slag_partition, p_rem=el.P*0.75;
+  const fe_slag=fe_metallic*p.iron_oxidation_fraction;
+  const c_extra=p.charge_carbon+p.injected_carbon;
+  let steel=metallic_in*0.9, Cf=0, dust=0;
+  for(let i=0;i<25;i++){Cf=Ctar*steel;dust=p.dust_rate*(steel/1000);
+    const ns=(fe_metallic-fe_slag-dust*0.7)+(el.Mn-mn_rem)+(el.Si-si_rem)+(el.P-p_rem)+Cf+el.Cu;
+    if(Math.abs(ns-steel)<1){steel=ns;break;}steel=ns;}
+  Cf=Ctar*steel; dust=p.dust_rate*(steel/1000);
+  const c_removed=Math.max(el.C+c_extra-Cf,0);
+  const fCO2=0.10, c_CO=c_removed*(1-fCO2), c_CO2=c_removed*fCO2;
+  const mCO=c_CO/MM.C*MM.CO, mCO2d=c_CO2/MM.C*MM.CO2;
+  const pcr=p.post_combustion_ratio, co_pc=mCO*pcr, mCO_out=mCO-co_pc;
+  const mCO2_out=mCO2d+co_pc/MM.CO*MM.CO2;
+  let o2=c_CO/O2TO.C_CO+c_CO2/O2TO.C_CO2+si_rem/O2TO.Si+mn_rem/O2TO.Mn+fe_slag/O2TO.Fe;
+  o2+=co_pc*0.5*MM.O2/MM.CO;
+  const offgas={CO:mCO_out,CO2:mCO2_out,N2:0.02*(mCO_out+mCO2_out)};
+  const offgas_mass=offgas.CO+offgas.CO2+offgas.N2;
+  const O2_Nm3=o2/O2DENS;
+  // slag
+  const dirtSiO2=p.dirt_silica*(m_scrap/1000)*0.85, dirtAl=p.dirt_silica*(m_scrap/1000)*0.15;
+  const SiO2=si_rem/MM.Si*MM.SiO2+gangue_dri*0.6+dirtSiO2;
+  const MnO=mn_rem/MM.Mn*MM.MnO, P2O5=p_rem/MM.P/2*MM.P2O5;
+  const FeO=fe_slag/MM.Fe*MM.FeO+feo_dri*0.2, Al2O3=gangue_dri*0.4+dirtAl;
+  const CaO_lime=p.lime_charged*0.9, MgO_dolo=p.dolomite_charged*0.38, CaO_dolo=p.dolomite_charged*0.55;
+  const CaO=CaO_lime+CaO_dolo, MgO=MgO_dolo;
+  const B=p.target_basicity, CaO_need=B*SiO2, lime_need=Math.max(CaO_need-CaO_dolo,0)/0.9;
+  const slag={CaO:CaO,MgO:MgO,SiO2:SiO2,MnO:MnO,FeO:FeO,P2O5:P2O5,Al2O3:Al2O3};
+  const slag_mass=Object.values(slag).reduce((a,b)=>a+b,0);
+  const B2=SiO2>0?CaO/SiO2:0, B3=SiO2>0?(CaO+MgO)/SiO2:0;
+  const tap={C:100*Cf/steel,Si:100*(el.Si-si_rem)/steel,Mn:100*(el.Mn-mn_rem)/steel,
+    P:100*(el.P-p_rem)/steel,S:100*el.S/steel,Cu:100*el.Cu/steel};
+  // energy sinks (MJ)
+  const q_steel=steel*(CP_SOLID*(T_PURE-Tamb)+L_FUS+CP_LIQ*(Ttap-T_PURE))/1000;
+  const q_slag=slag_mass*(CP_SLAG*(Ttap-Tamb)+L_FUS_SLAG)/1000;
+  const Tog=p.offgas_temperature;
+  let q_offgas=0;for(const g in offgas)q_offgas+=offgas[g]*(CPG[g]||1.2)*(Tog-Tamb)/1000;
+  const q_dust=dust*0.7*(Ttap-Tamb)/1000;
+  const t2t=p.power_on_time+p.power_off_time;
+  const q_cool=p.panel_heat_loss*1000*(t2t*60)/1000;
+  const q_dri_red=feo_dri*0.8*2880/1000;   // endothermic DRI FeO reduction (MJ)
+  const sinks={heat_steel:q_steel,heat_slag:q_slag,offgas_sensible_loss:q_offgas,dust_loss:q_dust,shell_cooling_loss:q_cool};
+  if(q_dri_red>0)sinks.dri_feo_reduction=q_dri_red;
+  const total_sink=Object.values(sinks).reduce((a,b)=>a+b,0);
+  // sources (MJ)
+  const e_C=(c_CO*CHEM.C_CO+c_CO2*CHEM.C_CO2)/1000, e_Si=si_rem*CHEM.Si/1000, e_Mn=mn_rem*CHEM.Mn/1000;
+  const e_Fe=fe_slag*CHEM.Fe/1000, e_P=p_rem*CHEM.P/1000;
+  const e_pc=(co_pc*CHEM.CO_CO2*p.post_combustion_efficiency)/1000;
+  const ng_kg=p.natural_gas*NGDENS, e_burn=ng_kg*NGLHV*0.7/1000;
+  const e_hm=m_hm>0?m_hm*(CP_LIQ*(p.hot_metal_temperature-Tamb))/1000:0;
+  const sources={chem_C_oxidation:e_C,chem_Si_oxidation:e_Si,chem_Mn_oxidation:e_Mn,chem_Fe_oxidation:e_Fe,
+    chem_P_oxidation:e_P,CO_post_combustion:e_pc,oxy_fuel_burners:e_burn,hot_metal_sensible:e_hm};
+  const chem_total=e_C+e_Si+e_Mn+e_Fe+e_P+e_pc;
+  const nonelec=Object.values(sources).reduce((a,b)=>a+b,0);
+  const eta_e=p.electrical_efficiency, eta_a=p.arc_transfer_efficiency;
+  const deficit=Math.max(total_sink-nonelec,0);
+  const grid=deficit/eta_a/eta_e;
+  const elec_kWh=grid/3.6, elec_spec=elec_kWh/(steel/1000);
+  const total_spec=((grid+chem_total+e_burn)/3.6)/(steel/1000);
+  return{steel_mass:steel,slag_mass:slag_mass,offgas_mass:offgas_mass,dust_mass:dust,
+    metallic_yield:steel/metallic_in,slag:slag,offgas:offgas,tap:tap,B2:B2,B3:B3,
+    lime_need:lime_need,O2_Nm3:O2_Nm3,sinks:sinks,sources:sources,
+    elec_kWh:elec_kWh,elec_spec:elec_spec,chem_kWh:chem_total/3.6,total_spec:total_spec,
+    t2t:t2t,electrode_kg:p.electrode_consumption_rate*(steel/1000),
+    inputs:{Scrap:m_scrap,DRI:m_dri,"Hot metal":m_hm,Lime:p.lime_charged,Dolomite:p.dolomite_charged,
+      Carbon:c_extra,Oxygen:o2}};
+}
+
+/* ========================= DYNAMIC MODEL ================================= */
+function runDynamic(p,mode,maxMin){
+  mode=mode||"endpoint"; maxMin=maxMin||120;
+  const dt=p.sim_timestep, Tmelt=liquidusC(scrapComp(p))+K, comp=scrapComp(p);
+  const layers=wallLayers(p), totalCharge=p.scrap_charge_mass*1000;
+  const eta_e=p.electrical_efficiency, eta_f=p.arc_transfer_efficiency, eta_b=p.arc_transfer_bare;
+  const Tamb=p.ambient_temperature+K, Ttar=p.target_tap_temperature, Ctar=p.target_carbon;
+  // state
+  const heel=0.005*p.furnace_capacity*1000;
+  let s={t:0,m_sSc:0,T_sSc:298.15,m_lSc:heel,T_lSc:Tmelt+20,
+    m_C:0,m_Si:0,m_Mn:0,m_P:0,m_Fe:heel,
+    slag:{CaO:0,MgO:0,SiO2:0,MnO:0,FeO:0,P2O5:0,Al2O3:0},T_sl:Tmelt,
+    E_elec:0,E_chem:0,O2:0,coCum:0,co2Cum:0,C_inj:0,c_budget:p.injected_carbon,lime_und:0,
+    foam:0,shell:0,wall:0,panel:0,offg:0,power_on:0};
+  // charge
+  const el={};["C","Si","Mn","P"].forEach(e=>el[e]=totalCharge*(comp[e]||0)/100);
+  s.m_sSc+=totalCharge; s.T_sSc=(298.15*(s.m_sSc-totalCharge)+(p.ambient_temperature+K)*totalCharge)/s.m_sSc;
+  s.C_inj+=p.charge_carbon; s.lime_und+=p.lime_charged;
+  s.slag.CaO+=p.dolomite_charged*0.55; s.slag.MgO+=p.dolomite_charged*0.38;
+  const ds=p.dirt_silica*totalCharge/1000; s.slag.SiO2+=ds*0.85; s.slag.Al2O3+=ds*0.15;
+  // rust / mill-scale on the scrap -> slag FeO at charge (high meltdown FeO)
+  s.slag.FeO+=p.scrap_rust_feo*totalCharge/1000;
+  const slagMass=()=>Object.values(s.slag).reduce((a,b)=>a+b,0);
+  const pct=()=>{const M=Math.max(s.m_lSc,1e-6);return{C:100*s.m_C/M,Si:100*s.m_Si/M,Mn:100*s.m_Mn/M,P:100*s.m_P/M};};
+  const basicity=()=>s.slag.SiO2>1e-6?s.slag.CaO/s.slag.SiO2:0;
+  const feoPct=()=>{const sm=slagMass();return sm>1e-6?100*s.slag.FeO/sm:0;};
+  const solidFrac=()=>{const tot=s.m_sSc+s.m_lSc;return tot>1e-6?s.m_sSc/tot:0;};
+
+  const H={}; ["t","m_sSc","m_lSc","m_slag","T_sSc","T_lSc","T_shell","C","Si","Mn","P",
+    "sCaO","sSiO2","sFeO","sMnO","sMgO","basicity","FeO","foam","lime_und",
+    "E_elec","E_chem","O2","P_arc","P_chem","P_wall","P_panel","P_offgas",
+    "sAl2O3","CO_out","CO2_out","spec","O2t","B3","yield"].forEach(k=>H[k]=[]);
+  const ev=[]; const log=(ph,e,d)=>ev.push({t:s.t,phase:ph,event:e,detail:d||""});
+  log("Charge",`Bucket charged: ${(totalCharge/1000).toFixed(1)} t scrap`,
+    `${p.ambient_temperature.toFixed(0)}°C; C ${p.scrap_C}%, Si ${p.scrap_Si}%, Mn ${p.scrap_Mn}%, P ${p.scrap_P}%`);
+  if(p.lime_charged>0)log("Charge",`Lime charged: ${p.lime_charged.toFixed(0)} kg`,"dissolving into slag");
+  if(p.charge_carbon>0)log("Charge",`Charge carbon: ${p.charge_carbon.toFixed(0)} kg`,"");
+  log("Bore-in","Arc energised — melt-down begins",`transformer ${p.transformer_power.toFixed(0)} MW`);
+  let phasePrev="Bore-in",limeDone=false,o2Started=false,cinjStarted=false,reached=false;
+  let nextRec=0; const maxS=maxMin*60, plannedOn=p.power_on_time*60;
+
+  function schedule(){const Pm=p.transformer_power,Om=p.oxygen_flow_rate,sf=solidFrac();
+    if(sf>0.70)return{P:0.65*Pm,O2:0.15*Om,Cinj:0.3,burn:0.9*p.natural_gas/60};
+    if(sf>0.05)return{P:1.0*Pm,O2:0.50*Om,Cinj:0.6,burn:0.2*p.natural_gas/60};
+    const over=s.T_lSc-(Ttar+K),Cnow=pct().C,foamAct=(s.C_inj>30||s.c_budget>30);
+    let Pf; if(over>0)Pf=0.0; else if(over>-15)Pf=0.20*Pm; else if(over>-30)Pf=0.35*Pm; else if(over>-70)Pf=0.60*Pm; else Pf=0.85*Pm;
+    let O2f=(Cnow>Ctar||foamAct)?1.0*Om:0.15*Om;
+    if(over>0&&Cnow<=Ctar)O2f=Math.min(O2f,0.40*Om);   // trim lance only once C is made
+    const Cif=(Cnow>1.6*Ctar)?1.2:0.0;        // stop foaming C so FeO can rise
+    return{P:Pf,O2:O2f,Cinj:Cif,burn:0};}
+
+  function chemistry(o2kg,cinjKg){
+    const M=Math.max(s.m_lSc,1e-6);let chem=0,co=0,co2=0,o2l=o2kg*0.97;
+    s.C_inj+=cinjKg;
+    // Si
+    const siEq=0.005/100*M;let dSi=Math.min(Math.max(s.m_Si-siEq,0)*p.si_removal_rate*dt,o2l*O2TO.Si);
+    if(dSi>0){o2l-=dSi/O2TO.Si;s.m_Si-=dSi;s.slag.SiO2+=dSi/MM.Si*MM.SiO2;chem+=dSi*CHEM.Si;}
+    // Mn
+    const mnEq=(1-p.mn_slag_partition)*s.m_Mn;let dMn=Math.min(Math.max(s.m_Mn-mnEq,0)*p.mn_removal_rate*dt,o2l*O2TO.Mn);
+    if(dMn>0){o2l-=dMn/O2TO.Mn;s.m_Mn-=dMn;s.slag.MnO+=dMn/MM.Mn*MM.MnO;chem+=dMn*CHEM.Mn;}
+    // P
+    const Bv=basicity(),feo=feoPct(),Tf=Math.max(0,(1900-s.T_lSc)/300);
+    const fav=Math.min(Bv/2,1.5)*Math.min(feo/20,1)*Tf;
+    let dP=Math.max(s.m_P,0)*p.p_removal_rate*fav*dt;dP=Math.min(dP,o2l*O2TO.Fe*0.2);
+    if(dP>0){s.m_P-=dP;s.slag.P2O5+=dP/MM.P/2*MM.P2O5;chem+=dP*CHEM.P;}
+    // (Injected/charge carbon foams the slag by reducing FeO below; it does
+    //  not burn directly on the lance. Lanced O2 -> Si, Mn, decarb, then Fe.
+    //  Energy is conserved: Fe+1/2O2->FeO then FeO+C->Fe+CO == C+1/2O2->CO.)
+    // decarburisation with carbon-mass-transfer limit
+    const Cp=100*s.m_C/M,Ccrit=p.decarb_critical_carbon,etaMax=p.decarb_o2_efficiency_max;
+    // Turkdogan carbon-oxygen product (%FeO)(%C)=K_CO(T): 1.8/1.25/0.89 @1500/1600/1700C
+    const K_CO=p.feo_equilibrium_factor*Math.exp(12325/s.T_lSc-6.357);let dC;
+    if(Cp>Ccrit){dC=Math.min(o2l*etaMax*O2TO.C_CO,Math.max(s.m_C-Ccrit/100*M,0));}
+    else{const k=p.decarb_mass_transfer_coeff,Ceq=K_CO/Math.max(feoPct(),1.0);
+      let dCmt=Math.max(Cp-Ceq,0)/100*M*k*dt;dC=Math.min(dCmt,o2l*O2TO.C_CO);}
+    if(dC>0){o2l-=dC/O2TO.C_CO;s.m_C-=dC;co+=dC/MM.C*MM.CO;chem+=dC*CHEM.C_CO;}
+    // Fe oxidation: remaining O2 makes FeO (large at low C -> FeO rises toward tap)
+    if(o2l>0){let dFe=Math.min(o2l*O2TO.Fe,s.m_Fe*0.5);s.m_Fe-=dFe;s.slag.FeO+=dFe/MM.Fe*MM.FeO;chem+=dFe*CHEM.Fe;o2l=0;}
+    // FeO reduction by injected carbon toward the carbon-set equilibrium (foaming)
+    const FeOp=feoPct(),FeOeq=Math.min(K_CO/Math.max(Cp,0.02),p.slag_feo_max);
+    if(FeOp>FeOeq&&s.C_inj>0&&s.slag.FeO>0){const sm=slagMass();const redu=(FeOp-FeOeq)/100*sm;
+      let dFeO=Math.min(p.feo_reduction_rate*s.C_inj*s.slag.FeO*dt,redu,s.slag.FeO,s.C_inj*MM.FeO/MM.C);
+      if(dFeO>0){const dCr=dFeO*MM.C/MM.FeO;s.C_inj-=dCr;s.slag.FeO-=dFeO;s.m_Fe+=dFeO/MM.FeO*MM.Fe;
+        co+=dCr/MM.C*MM.CO;chem+=dCr*(CHEM.C_CO-(MM.Fe/MM.C)*CHEM.Fe);}}
+    // post-combustion
+    const pcr=p.post_combustion_ratio,pce=p.post_combustion_efficiency,cob=co*pcr;
+    chem+=cob*CHEM.CO_CO2*pce;co2+=cob/MM.CO*MM.CO2;const coOut=co-cob;
+    return{chem:chem,coOut:coOut,co2:co2,coRate:co/dt};
+  }
+  function foamIdx(coRate){const base=Math.min(coRate/p.foaming_co_reference,1);const feo=feoPct();
+    const gF=feo<35?1:Math.max(0.3,1-(feo-35)/30);const Bv=basicity();const gB=Bv<2.8?1:Math.max(0.4,1-(Bv-2.8)/2);
+    return Math.max(0,Math.min(1,base*gF*gB));}
+
+  while(s.t<maxS){
+    // lime dissolution
+    if(s.lime_und>0){const dl=Math.min(p.lime_dissolution_rate*s.lime_und*dt,s.lime_und);
+      s.lime_und-=dl;s.slag.CaO+=dl;if(s.lime_und<1&&!limeDone){limeDone=true;log(phasePrev,"Lime fully dissolved",`B2 = ${basicity().toFixed(2)}`);}}
+    // phase transitions
+    const sf=solidFrac();const ph=sf>0.70?"Bore-in":(sf>0.05?"Melt-down":"Flat bath / refining");
+    if(ph!==phasePrev){log(ph,`Phase → ${ph}`,`bath ${(s.T_lSc-K).toFixed(0)}°C, C ${pct().C.toFixed(3)}%, ${(s.m_lSc/1000).toFixed(1)} t liquid`);phasePrev=ph;}
+    const sp=schedule();const P_arc_kW=sp.P*1000,o2kg=sp.O2/3600*dt*O2DENS,burnMW=sp.burn;
+    const feedC=Math.min(sp.Cinj*dt,s.c_budget);s.c_budget-=feedC;
+    if(!o2Started&&sp.O2>0){o2Started=true;log(ph,"Oxygen lancing on",`${sp.O2.toFixed(0)} Nm3/h`);}
+    if(!cinjStarted&&feedC>0){cinjStarted=true;log(ph,"Carbon injection on (slag foaming)","");}
+    const chem=chemistry(o2kg,feedC);s.O2+=sp.O2/3600*dt;s.coCum+=chem.coOut;s.co2Cum+=chem.co2;s.E_chem+=chem.chem/1000;
+    const foam=foamIdx(chem.coRate);s.foam=foam;
+    const shield=Math.max(foam,Math.min(1,sf/0.30));const etaTr=eta_b+shield*(eta_f-eta_b);
+    const arc2charge=eta_e*P_arc_kW*etaTr;const expS=Math.min(1,sf/0.06);
+    const Qarc_s=arc2charge*expS,Qarc_l=arc2charge*(1-expS);
+    let Qburn=0;if(burnMW>0&&s.m_sSc>0){let eb=0.35+0.65*Math.tanh(1300/Math.max(s.T_sSc,1)-1);eb=Math.max(0.1,Math.min(eb,1));Qburn=burnMW*1000*0.7*eb;}
+    const Pchem=chem.chem/dt;let Qchem_l=Pchem*0.85,Qchem_s=s.m_sSc>0?Pchem*0.15:0;if(s.m_sSc<=0)Qchem_l+=Pchem*0.15;
+    const hot=1-Math.exp(-s.m_lSc/(0.3*p.furnace_capacity*1000));const Qpanel=p.panel_heat_loss*1000*hot;
+    const Tog=p.offgas_temperature+K;const Qoffg=(chem.coOut*CPG.CO+chem.co2*CPG.CO2)*(Tog-Tamb)/dt;
+    const wall=wallHeatLoss(s.T_sl-K,p.ambient_temperature,layers,p.refractory_area,p.convection_coefficient,p.shell_emissivity);
+    const Qwall=wall.Q/1000;s.wall=Qwall;s.shell=wall.shell;s.panel=Qpanel;s.offg=Qoffg;
+    const mtot=s.m_sSc+s.m_lSc,fS=mtot>0?s.m_sSc/mtot:0,fL=1-fS;
+    const Qs_loss=Qpanel*fS,Ql_loss=Qpanel*fL+Qoffg+Qwall;
+    let Qimm=0;if(s.m_sSc>1&&s.T_lSc>Tmelt){const htc=p.scrap_melt_htc*Math.pow(s.m_sSc/totalCharge,0.667);Qimm=htc*(s.T_lSc-Tmelt);}
+    const Qs=Qarc_s+Qburn+Qchem_s-Qs_loss+Qimm, Ql=Qarc_l+Qchem_l-Ql_loss-Qimm;
+    // solid heat+melt
+    if(s.m_sSc>1e-3){const ratio=Math.min(s.T_sSc/Tmelt,1),hf=Math.max(0,1-ratio),mf=ratio;
+      s.T_sSc+=Qs*hf/(s.m_sSc*CP_SOLID)*dt;s.T_sSc=Math.min(s.T_sSc,Tmelt);
+      const denom=L_FUS+CP_SOLID*Math.max(Tmelt-s.T_sSc,0);const mdot=Math.max(Qs,0)*mf/denom;
+      let dmm=Math.min(mdot*dt,s.m_sSc);const add={};["C","Si","Mn","P"].forEach(e=>add[e]=dmm*(comp[e]||0)/100);
+      const addFe=dmm-Object.values(add).reduce((a,b)=>a+b,0);
+      if(s.m_lSc+dmm>0)s.T_lSc=(s.T_lSc*s.m_lSc+Tmelt*dmm)/(s.m_lSc+dmm);
+      s.m_sSc-=dmm;s.m_lSc+=dmm;s.m_C+=add.C;s.m_Si+=add.Si;s.m_Mn+=add.Mn;s.m_P+=add.P;s.m_Fe+=addFe;}
+    else s.m_sSc=0;
+    s.m_lSc=s.m_Fe+s.m_C+s.m_Si+s.m_Mn+s.m_P; // conserve mass (Fe->slag reduces weight)
+    if(s.m_lSc>1e-3)s.T_lSc+=Ql/(s.m_lSc*CP_LIQ)*dt;
+    s.T_sl=s.T_lSc;
+    s.E_elec+=P_arc_kW*dt/1000;s.power_on+=P_arc_kW>0?dt:0;s.t+=dt;
+    if(s.t>=nextRec){const pc=pct();
+      H.t.push(s.t);H.m_sSc.push(s.m_sSc/1000);H.m_lSc.push(s.m_lSc/1000);H.m_slag.push(slagMass());
+      H.T_sSc.push(s.T_sSc-K);H.T_lSc.push(s.T_lSc-K);H.T_shell.push(s.shell);
+      H.C.push(pc.C);H.Si.push(pc.Si);H.Mn.push(pc.Mn);H.P.push(pc.P*10);
+      H.sCaO.push(s.slag.CaO);H.sSiO2.push(s.slag.SiO2);H.sFeO.push(s.slag.FeO);H.sMnO.push(s.slag.MnO);H.sMgO.push(s.slag.MgO);
+      H.basicity.push(basicity());H.FeO.push(feoPct());H.foam.push(s.foam);H.lime_und.push(s.lime_und);
+      H.E_elec.push(s.E_elec/3.6);H.E_chem.push(s.E_chem/3.6);H.O2.push(s.O2);
+      H.P_arc.push(arc2charge/1000);H.P_chem.push(Pchem/1000);H.P_wall.push(Qwall/1000);H.P_panel.push(Qpanel/1000);H.P_offgas.push(Qoffg/1000);
+      H.sAl2O3.push(s.slag.Al2O3);H.CO_out.push(s.coCum);H.CO2_out.push(s.co2Cum);
+      const tt=s.m_lSc/1000; H.spec.push((s.E_elec/3.6+s.E_chem/3.6)/(totalCharge/1000));
+      H.O2t.push(tt>20?s.O2/tt:0); const b3d=s.slag.SiO2+s.slag.Al2O3;
+      H.B3.push(b3d>1e-6?s.slag.CaO/b3d:0); H.yield.push(100*s.m_lSc/(totalCharge+1e-9));
+      nextRec+=10;}
+    if(mode==="endpoint"){if(s.m_sSc<1e-2&&s.T_lSc>=Ttar+K&&100*s.m_C/Math.max(s.m_lSc,1e-6)<=Ctar){
+      reached=true;log("Flat bath / refining","Endpoint reached — ready to tap",`${(s.T_lSc-K).toFixed(0)}°C, C ${pct().C.toFixed(3)}%, B2 ${basicity().toFixed(2)}`);break;}}
+    else if(mode==="fixed"){if(s.power_on>=plannedOn)break;}
+  }
+  const electrode=p.electrode_consumption_rate*(s.m_lSc/1000);
+  log(phasePrev,"TAP",`${(s.m_lSc/1000).toFixed(1)} t steel at ${(s.T_lSc-K).toFixed(0)}°C`);
+  const pc=pct();
+  return{H:H,events:ev,reached:reached,tapToTap:s.t/60+p.power_off_time,powerOnMin:s.power_on/60,
+    final:{steel:s.m_lSc,Ttap:s.T_lSc-K,C:pc.C,Si:pc.Si,Mn:pc.Mn,P:pc.P,slag:s.slag,slagMass:slagMass(),
+      B2:basicity(),FeO:feoPct(),foam:s.foam,shell:s.shell,wall:s.wall,panel:s.panel,offg:s.offg,
+      Eelec:s.E_elec/3.6,Echem:s.E_chem/3.6,O2:s.O2,electrode:electrode,powerOn:s.power_on/60,
+      wallC:wallHeatLoss(s.T_lSc-K,p.ambient_temperature,layers,p.refractory_area,p.convection_coefficient,p.shell_emissivity)}};
+}
+/* ============================ PLOTTING ================================== */
+function fmtN(v){if(!isFinite(v))return'';const a=Math.abs(v);
+  if(a>=1000)return(v/1000).toFixed(1)+'k';if(a>=100)return v.toFixed(0);
+  if(a>=10)return v.toFixed(0);if(a>=1)return v.toFixed(1);if(a>0)return v.toFixed(2);return'0';}
+function ctxFor(id,h){const cv=document.getElementById(id);const dpr=window.devicePixelRatio||1;
+  const W=cv.clientWidth||600,H=h||cv.clientHeight||230;cv.width=W*dpr;cv.height=H*dpr;
+  const ctx=cv.getContext('2d');ctx.scale(dpr,dpr);ctx.clearRect(0,0,W,H);return{ctx,W,H};}
+function chartLine(id,series,opts){opts=opts||{};const {ctx,W,H}=ctxFor(id,opts.height);
+  const hasR=series.some(s=>s.axis==='right');
+  const mL=48,mR=hasR?46:14,mT=8,mB=26,pw=W-mL-mR,ph=H-mT-mB;
+  let xmin=Infinity,xmax=-Infinity;series.forEach(s=>s.data.forEach(d=>{xmin=Math.min(xmin,d[0]);xmax=Math.max(xmax,d[0]);}));
+  if(!isFinite(xmin)){xmin=0;xmax=1;}if(xmin===xmax)xmax=xmin+1;
+  const yr=ax=>{let a=Infinity,b=-Infinity;series.filter(s=>(s.axis||'left')===ax).forEach(s=>s.data.forEach(d=>{a=Math.min(a,d[1]);b=Math.max(b,d[1]);}));
+    if(!isFinite(a)){a=0;b=1;}if(a===b)b=a+1;const pad=(b-a)*0.08;return[a-pad,b+pad];};
+  const L=yr('left'),R=hasR?yr('right'):[0,1];
+  const X=x=>mL+(x-xmin)/(xmax-xmin)*pw,YL=y=>mT+ph-(y-L[0])/(L[1]-L[0])*ph,YR=y=>mT+ph-(y-R[0])/(R[1]-R[0])*ph;
+  ctx.strokeStyle='#263543';ctx.fillStyle='#8ba0b4';ctx.font='10px Segoe UI';ctx.lineWidth=1;
+  for(let i=0;i<=4;i++){const yy=mT+ph*i/4;ctx.beginPath();ctx.moveTo(mL,yy);ctx.lineTo(mL+pw,yy);ctx.stroke();
+    ctx.textAlign='right';ctx.fillText(fmtN(L[1]-(L[1]-L[0])*i/4),mL-4,yy+3);}
+  for(let i=0;i<=5;i++){const xx=mL+pw*i/5;ctx.textAlign='center';ctx.fillText(fmtN(xmin+(xmax-xmin)*i/5),xx,H-8);}
+  if(hasR){ctx.fillStyle='#c9a24a';ctx.textAlign='left';for(let i=0;i<=4;i++){const yy=mT+ph*i/4;ctx.fillText(fmtN(R[1]-(R[1]-R[0])*i/4),mL+pw+4,yy+3);}}
+  if(opts.hline!=null){ctx.strokeStyle='#5a6b7a';ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(mL,YL(opts.hline));ctx.lineTo(mL+pw,YL(opts.hline));ctx.stroke();ctx.setLineDash([]);}
+  series.forEach(s=>{const Y=s.axis==='right'?YR:YL;ctx.strokeStyle=s.color;ctx.lineWidth=s.width||2;
+    ctx.setLineDash(s.dashed?[5,4]:[]);ctx.beginPath();s.data.forEach((d,i)=>{const px=X(d[0]),py=Y(d[1]);i?ctx.lineTo(px,py):ctx.moveTo(px,py);});ctx.stroke();});
+  ctx.setLineDash([]);
+  if(opts.legend)document.getElementById(opts.legend).innerHTML=series.map(s=>`<span><i style="background:${s.color}"></i>${s.label}</span>`).join('');}
+function chartBar(id,labels,vals,color,horiz){const {ctx,W,H}=ctxFor(id,240);
+  const mL=horiz?110:36,mR=14,mT=10,mB=horiz?12:56,pw=W-mL-mR,ph=H-mT-mB;
+  const mx=Math.max(...vals,1e-9);ctx.font='10px Segoe UI';
+  vals.forEach((v,i)=>{const c=Array.isArray(color)?color[i%color.length]:color;ctx.fillStyle=c;
+    if(horiz){const bh=ph/vals.length*0.7,y=mT+ph*i/vals.length+ph/vals.length*0.15,bw=v/mx*pw;
+      ctx.fillRect(mL,y,bw,bh);ctx.fillStyle='#8ba0b4';ctx.textAlign='right';ctx.fillText(labels[i],mL-4,y+bh/2+3);
+      ctx.textAlign='left';ctx.fillStyle='#e7eef5';ctx.fillText(fmtN(v),mL+bw+4,y+bh/2+3);}
+    else{const bw=pw/vals.length*0.62,x=mL+pw*i/vals.length+pw/vals.length*0.19,bh=v/mx*ph;
+      ctx.fillRect(x,mT+ph-bh,bw,bh);ctx.save();ctx.fillStyle='#8ba0b4';ctx.translate(x+bw/2,mT+ph+6);ctx.rotate(-Math.PI/5);ctx.textAlign='right';ctx.fillText(labels[i],0,0);ctx.restore();
+      ctx.fillStyle='#e7eef5';ctx.textAlign='center';ctx.fillText(fmtN(v),x+bw/2,mT+ph-bh-3);}});}
+function chartPie(id,labels,vals){const {ctx,W,H}=ctxFor(id,240);const cx=W*0.36,cy=H/2,r=Math.min(cx,cy)-8;
+  const tot=vals.reduce((a,b)=>a+b,0)||1;let a0=-Math.PI/2;const cols=['#1f77b4','#ff7f0e','#d62728','#2ca02c','#9467bd','#8c564b','#17becf','#e377c2'];
+  vals.forEach((v,i)=>{const a1=a0+v/tot*2*Math.PI;ctx.fillStyle=cols[i%cols.length];ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,a0,a1);ctx.closePath();ctx.fill();a0=a1;});
+  ctx.font='11px Segoe UI';labels.forEach((l,i)=>{const y=16+i*18;ctx.fillStyle=cols[i%cols.length];ctx.fillRect(W*0.68,y-8,11,11);
+    ctx.fillStyle='#c9d6e2';ctx.textAlign='left';ctx.fillText(`${l}  ${(vals[i]/tot*100).toFixed(0)}%`,W*0.68+16,y+2);});}
+
+/* ============================ SCHEMATIC ================================= */
+function buildSchematic(){
+  const svg=`<svg viewBox="0 0 560 440" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto">
+   <defs>
+     <linearGradient id="steelG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff9a5a"/><stop offset="1" stop-color="#c94f2a"/></linearGradient>
+     <linearGradient id="slagG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a6d977"/><stop offset="1" stop-color="#6aa84f"/></linearGradient>
+     <radialGradient id="arcG"><stop offset="0" stop-color="#eaffff"/><stop offset="1" stop-color="#2aa9ff" stop-opacity="0"/></radialGradient>
+     <linearGradient id="shellG" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#3a4a5a"/><stop offset="1" stop-color="#26333f"/></linearGradient>
+   </defs>
+   <!-- off-gas duct (4th hole) -->
+   <path d="M430,70 h70 v-40" fill="none" stroke="#5a6b7a" stroke-width="10"/>
+   <text x="505" y="26" fill="#8ba0b4" font-size="11">off-gas</text>
+   <!-- roof -->
+   <path d="M70,120 Q280,60 490,120" fill="none" stroke="#4a5a6a" stroke-width="14"/>
+   <path d="M70,120 Q280,72 490,120" fill="none" stroke="#6a7a8a" stroke-width="4"/>
+   <!-- shell / vessel -->
+   <path d="M80,120 L80,300 Q80,400 180,400 L380,400 Q480,400 480,300 L480,120" fill="url(#shellG)" stroke="#2c3d4d" stroke-width="3"/>
+   <!-- refractory layers -->
+   <path d="M96,128 L96,300 Q96,384 180,384 L380,384 Q464,384 464,300 L464,128" fill="none" stroke="#7a5a3a" stroke-width="18"/>
+   <path d="M110,134 L110,300 Q110,372 182,372 L378,372 Q450,372 450,300 L450,134" fill="none" stroke="#9a7a4a" stroke-width="10"/>
+   <!-- water panels (upper walls) -->
+   <line x1="90" y1="130" x2="90" y2="230" stroke="#3aa0d8" stroke-width="6"/>
+   <line x1="470" y1="130" x2="470" y2="230" stroke="#3aa0d8" stroke-width="6"/>
+   <text x="30" y="180" fill="#3aa0d8" font-size="10">water</text><text x="30" y="192" fill="#3aa0d8" font-size="10">panels</text>
+   <!-- liquid bath -->
+   <path id="schBathShape" d="M118,330 L118,300 Q118,360 184,360 L376,360 Q442,360 442,300 L442,330 Q442,366 378,366 L182,366 Q118,366 118,330 Z" fill="url(#steelG)"/>
+   <path id="schBathFill" d="M118,300 Q118,360 184,360 L376,360 Q442,360 442,300 L442,366 L118,366 Z" fill="url(#steelG)"/>
+   <!-- slag layer -->
+   <path id="schSlag" d="M120,300 Q120,300 180,300 L380,300 Q440,300 440,300 L440,312 Q440,318 380,318 L180,318 Q120,318 120,312 Z" fill="url(#slagG)" opacity="0.9"/>
+   <!-- electrodes -->
+   <g>
+     <rect x="212" y="40" width="18" height="270" rx="3" fill="#2b2b2b" stroke="#111"/>
+     <rect x="271" y="40" width="18" height="278" rx="3" fill="#2b2b2b" stroke="#111"/>
+     <rect x="330" y="40" width="18" height="270" rx="3" fill="#2b2b2b" stroke="#111"/>
+   </g>
+   <!-- arcs -->
+   <g class="arc-anim">
+     <ellipse cx="221" cy="318" rx="26" ry="16" fill="url(#arcG)"/>
+     <ellipse cx="280" cy="322" rx="30" ry="18" fill="url(#arcG)"/>
+     <ellipse cx="339" cy="318" rx="26" ry="16" fill="url(#arcG)"/>
+     <line x1="221" y1="310" x2="221" y2="322" stroke="#dffbff" stroke-width="2"/>
+     <line x1="280" y1="318" x2="280" y2="330" stroke="#dffbff" stroke-width="2"/>
+     <line x1="339" y1="310" x2="339" y2="322" stroke="#dffbff" stroke-width="2"/>
+   </g>
+   <text x="270" y="34" fill="#9fb3c8" font-size="11">3× graphite electrodes</text>
+   <!-- oxygen lance -->
+   <line x1="30" y1="250" x2="150" y2="322" stroke="#7fd0ff" stroke-width="5"/>
+   <text x="18" y="244" fill="#7fd0ff" font-size="11">O₂ lance</text>
+   <!-- carbon injection -->
+   <line x1="530" y1="250" x2="410" y2="322" stroke="#c98a3a" stroke-width="5"/>
+   <text x="486" y="244" fill="#c98a3a" font-size="11">C inject</text>
+   <!-- tap spout (EBT) -->
+   <path d="M300,400 l-16,30 l40,0 z" fill="#c94f2a" stroke="#2c3d4d" stroke-width="2"/>
+   <text x="300" y="428" fill="#8ba0b4" font-size="10" text-anchor="middle">EBT tap</text>
+   <!-- live labels -->
+   <text id="schPhase" x="280" y="96" fill="#ffb703" font-size="13" font-weight="bold" text-anchor="middle">— idle —</text>
+   <text id="schTemp" x="280" y="342" fill="#fff" font-size="13" font-weight="bold" text-anchor="middle"></text>
+  </svg>`;
+  document.getElementById('schematicHolder').innerHTML=svg;
+  document.getElementById('schematicLegend').innerHTML=
+    ['<i style="background:#c94f2a"></i>liquid steel','<i style="background:#6aa84f"></i>foaming slag',
+     '<i style="background:#7a5a3a"></i>refractory','<i style="background:#3aa0d8"></i>water panels',
+     '<i style="background:#7fd0ff"></i>arc / O₂','<i style="background:#c98a3a"></i>carbon']
+     .map(x=>`<span>${x}</span>`).join('');
+}
+function updateSchematic(f,phase){
+  const set=(id,t)=>{const e=document.getElementById(id);if(e)e.textContent=t;};
+  set('schPhase',phase||'heat complete');
+  if(f)set('schTemp',`${f.Ttap.toFixed(0)} °C`);
+  // slag thickness reflects foam
+  const slag=document.getElementById('schSlag');
+  if(slag&&f){const th=6+f.foam*16;slag.setAttribute('d',
+    `M120,${306-th} Q120,${306-th} 180,${306-th} L380,${306-th} Q440,${306-th} 440,${306-th} L440,306 Q440,312 380,312 L180,312 Q120,312 120,306 Z`);}
+}
+function buildRefBar(p){
+  const layers=wallLayers(p);const wall=wallHeatLoss(p.target_tap_temperature,p.ambient_temperature,layers,
+    p.refractory_area,p.convection_coefficient,p.shell_emissivity);
+  const tot=layers.reduce((a,L)=>a+L.t,0);const cols=['#e8a15a','#d0894a','#7fc7e8','#9fb3c8'];
+  let html='<div style="display:flex;height:34px;border-radius:6px;overflow:hidden;border:1px solid var(--line)">';
+  layers.forEach((L,i)=>{html+=`<div title="${L.name}: ${L.t}mm, k=${L.k}" style="width:${L.t/tot*100}%;background:${cols[i]};display:flex;align-items:center;justify-content:center;font-size:10px;color:#111;font-weight:600">${L.t}</div>`;});
+  html+='</div>';
+  document.getElementById('refBar').innerHTML=html;
+  document.getElementById('refNote').innerHTML=
+    `Hot face <b>${wall.temps[0].toFixed(0)}°C</b> → shell <b>${wall.shell.toFixed(0)}°C</b> · wall loss <b>${(wall.Q/1000).toFixed(0)} kW</b> `+
+    `(conv ${(wall.cf*100).toFixed(0)}% / rad ${(wall.rf*100).toFixed(0)}%). Total lining ${tot} mm over ${p.refractory_area} m².`;
+}
+
+/* ============================ UI WIRING ================================= */
+let PARAMS=defaultParams(),lastStatic=null,lastDyn=null;
+function syncInputs(){PMETA.forEach(m=>{const el=document.getElementById('in_'+m[0]);if(el){const v=parseFloat(el.value);if(isFinite(v))PARAMS[m[0]]=v;}});}
+function buildInputs(){
+  const sections={};PMETA.forEach(m=>{(sections[m[3]]=sections[m[3]]||[]).push(m);});
+  const order=["Charge","Fluxes & additions","Oxygen & burners","Electrical & timing","Targets","Furnace & refractory","Efficiencies & kinetics"];
+  let html='';order.forEach((sec,idx)=>{html+=`<details class="param-sec" ${idx<5?'open':''}><summary>${sec}</summary><div class="param-grid">`;
+    sections[sec].forEach(m=>{html+=`<div class="pf"><label>${m[1]} <span class="help">?</span></label>
+      <input id="in_${m[0]}" type="number" step="any" value="${m[6]}"><span class="u">${m[2]}</span>
+      <div class="tip"><b>${m[1]}</b> <span class="tv">(${m[2]})</span><br>range ${m[4]} – ${m[5]} ${m[2]}<br>${m[7]}</div></div>`;});
+    html+='</div></details>';});
+  document.getElementById('paramContainer').innerHTML=html;
+  PMETA.forEach(m=>{const el=document.getElementById('in_'+m[0]);el.addEventListener('change',()=>{syncInputs();buildRefBar(PARAMS);});});
+}
+function buildHelp(){const html=PMETA.map(m=>`<div class="pf" style="padding:8px;border-bottom:1px solid var(--line)" data-k="${(m[1]+' '+m[0]).toLowerCase()}">
+  <div style="color:var(--accent2);font-weight:600;font-size:12.5px">${m[1]} <span class="u">${m[2]}</span></div>
+  <div class="small" style="margin-top:2px">default ${m[6]} · range ${m[4]}–${m[5]}</div>
+  <div class="note" style="margin-top:3px">${m[7]}</div></div>`).join('');
+  document.getElementById('helpList').innerHTML=html;
+  document.getElementById('helpSearch').addEventListener('input',e=>{const q=e.target.value.toLowerCase();
+    document.querySelectorAll('#helpList .pf').forEach(d=>{d.style.display=d.dataset.k.includes(q)?'block':'none';});});
+  // validation table
+  const s=lastStatic||runStatic(PARAMS);
+  const rows=[["Specific electrical energy",s.elec_spec.toFixed(0)+" kWh/t","350–450 kWh/t"],
+    ["Total specific energy",s.total_spec.toFixed(0)+" kWh/t","560–650 kWh/t"],
+    ["Metallic yield",(s.metallic_yield*100).toFixed(1)+" %","88–93 %"],
+    ["Slag basicity B2",s.B2.toFixed(2),"1.8–2.2"],
+    ["Oxygen use",(s.O2_Nm3/(s.steel_mass/1000)).toFixed(1)+" Nm3/t","20–40 Nm3/t"],
+    ["Electrode consumption",(s.electrode_kg/(s.steel_mass/1000)).toFixed(2)+" kg/t","1.3–2.0 kg/t"]];
+  document.getElementById('helpValidation').innerHTML='<table><thead><tr><th>Quantity</th><th>Model</th><th>Literature band</th></tr></thead><tbody>'+
+    rows.map(r=>`<tr><td>${r[0]}</td><td style="color:var(--accent2);font-weight:600">${r[1]}</td><td>${r[2]}</td></tr>`).join('')+'</tbody></table>';
+}
+function kpi(v,l,cls){return `<div class="kpi ${cls||''}"><div class="v">${v}</div><div class="l">${l}</div></div>`;}
+function band(v,lo,hi){return v<lo?'warn':(v>hi?'act':'ok');}
+
+function runStaticUI(noSwitch){syncInputs();const s=runStatic(PARAMS);lastStatic=s;
+  document.getElementById('staticKPIs').innerHTML=
+    kpi((s.steel_mass/1000).toFixed(1)+' t','Liquid steel tapped','ok')+
+    kpi((s.metallic_yield*100).toFixed(1)+'%','Metallic yield',band(s.metallic_yield*100,88,96))+
+    kpi(s.elec_spec.toFixed(0),'Electrical kWh/t',band(s.elec_spec,300,470))+
+    kpi(s.total_spec.toFixed(0),'Total kWh/t',band(s.total_spec,550,680))+
+    kpi(s.B2.toFixed(2),'Slag basicity B2',band(s.B2,1.8,2.6))+
+    kpi((s.slag_mass/1000).toFixed(1)+' t','Slag mass','ok')+
+    kpi((s.O2_Nm3/(s.steel_mass/1000)).toFixed(0),'O₂ Nm³/t',band(s.O2_Nm3/(s.steel_mass/1000),25,45))+
+    kpi(s.chem_kWh.toFixed(0),'Chemical kWh','ok');
+  const sk=s.sinks;chartBar('cStaticSinks',Object.keys(sk).map(k=>k.replace(/_/g,' ')),Object.values(sk).map(v=>v/3.6),'#ef6c00',true);
+  const so=s.sources;const soE=Object.entries(so).filter(e=>e[1]>1);
+  chartBar('cStaticSources',soE.map(e=>e[0].replace(/_/g,' ')),soE.map(e=>e[1]/3.6),'#2ca02c',true);
+  const sl=Object.entries(s.slag).filter(e=>e[1]>1);chartPie('cStaticSlag',sl.map(e=>e[0]),sl.map(e=>e[1]));
+  const inp=s.inputs;chartBar('cStaticMass',[...Object.keys(inp),'→','Steel','Slag','Off-gas','Dust'],
+    [...Object.values(inp).map(v=>v/1000),0,s.steel_mass/1000,s.slag_mass/1000,s.offgas_mass/1000,s.dust_mass/1000],
+    ['#1976d2','#1976d2','#1976d2','#1976d2','#1976d2','#1976d2','#1976d2','#333','#388e3c','#6aa84f','#ef5350','#9e9e9e']);
+  document.getElementById('staticTables').innerHTML=
+    '<table><thead><tr><th>Element</th><th>wt-%</th></tr></thead><tbody>'+
+    Object.entries(s.tap).map(([k,v])=>`<tr><td>${k}</td><td>${v.toFixed(3)}</td></tr>`).join('')+'</tbody></table>'+
+    `<p class="small" style="margin-top:8px">Lime to hit aim B2: <b>${s.lime_need.toFixed(0)} kg</b> · off-gas ${(s.offgas_mass/1000).toFixed(2)} t · est. tap-to-tap ${s.t2t.toFixed(0)} min · electrode ${s.electrode_kg.toFixed(0)} kg</p>`;
+  buildRefBar(PARAMS);if(!noSwitch)switchTab('static');}
+
+function runDynamicUI(noSwitch){syncInputs();const mode=document.getElementById('dynMode').value;
+  document.getElementById('dynStatus').textContent='running…';
+  setTimeout(()=>{const r=runDynamic(PARAMS,mode,120);lastDyn=r;const f=r.final,H=r.H;
+    const spec=f.Eelec/(f.steel/1000);
+    document.getElementById('dynKPIs').innerHTML=
+      kpi(f.Ttap.toFixed(0),'Tap temp °C',band(f.Ttap,PARAMS.target_tap_temperature-15,PARAMS.target_tap_temperature+25))+
+      kpi(f.C.toFixed(3),'Tap carbon %',band(f.C,0.01,PARAMS.target_carbon+0.03))+
+      kpi(r.tapToTap.toFixed(1),'Tap-to-tap min',band(r.tapToTap,40,60))+
+      kpi(spec.toFixed(0),'Electrical kWh/t',band(spec,300,470))+
+      kpi(f.B2.toFixed(2),'Slag B2',band(f.B2,1.8,2.6))+
+      kpi(f.FeO.toFixed(0)+'%','Slag FeO',band(f.FeO,15,32))+
+      kpi(f.foam.toFixed(2),'Foam index',band(f.foam,0.5,1.2))+
+      kpi(r.reached?'✔':'✘','Endpoint',r.reached?'ok':'act');
+    const mk=(key,color,axis,dashed,label)=>({label:label||key,data:H.t.map((t,i)=>[t/60,H[key][i]]),color,axis,dashed});
+    const mkw=(key,color,label)=>({label,color,data:H.t.map((t,i)=>[t/60,H.m_slag[i]>1e-6?100*H[key][i]/H.m_slag[i]:0])});
+    chartLine('cMelt',[mk('m_sSc','#8c564b',null,0,'solid scrap (t)'),mk('m_lSc','#1f77b4',null,0,'liquid steel (t)'),{label:'slag (t)',color:'#2ca02c',axis:'right',data:H.t.map((t,i)=>[t/60,H.m_slag[i]/1000])}],{legend:'lMelt'});
+    chartLine('cTemp',[mk('T_lSc','#d64545',null,0,'bath °C'),mk('T_sSc','#e8930c',null,1,'solid °C'),mk('T_shell','#8ba0b4','right',0,'shell °C')],{legend:'lTemp',hline:PARAMS.target_tap_temperature});
+    chartLine('cChem',[mk('C','#1f77b4',null,0,'C'),mk('Si','#ff7f0e',null,0,'Si'),mk('Mn','#2ca02c',null,0,'Mn'),mk('P','#d62728',null,0,'P ×10')],{legend:'lChem'});
+    chartLine('cSlag',[mk('sCaO','#1f77b4',null,0,'CaO'),mk('sSiO2','#ff7f0e',null,0,'SiO₂'),mk('sFeO','#d62728',null,0,'FeO'),mk('sMgO','#2ca02c',null,0,'MgO'),mk('basicity','#e7eef5','right',1,'B2')],{legend:'lSlag'});
+    chartLine('cSlagWt',[mkw('sCaO','#1f77b4','CaO'),mkw('sSiO2','#ff7f0e','SiO₂'),mkw('sFeO','#d62728','FeO'),mkw('sMgO','#2ca02c','MgO'),mkw('sMnO','#9467bd','MnO')],{legend:'lSlagWt'});
+    chartLine('cEnergy',[mk('E_elec','#1f77b4',null,0,'electrical kWh'),mk('E_chem','#2ca02c',null,0,'chemical kWh'),mk('foam','#9467bd','right',1,'foam idx')],{legend:'lEnergy'});
+    chartLine('cLoss',[mk('P_arc','#1f77b4',null,0,'arc→bath MW'),mk('P_chem','#2ca02c',null,0,'chemical'),mk('P_panel','#ff7f0e',null,0,'panel loss'),mk('P_offgas','#d62728',null,0,'off-gas loss'),mk('P_wall','#8c564b',null,0,'wall loss')],{legend:'lLoss'});
+    chartLine('cDecarb',[mk('C','#1f77b4',null,0,'bath C %'),mk('O2','#d62728','right',0,'cum. O₂ Nm³')],{legend:'lDecarb'});
+    chartLine('cDissol',[mk('lime_und','#e8930c',null,0,'undissolved lime kg'),mk('basicity','#1f77b4','right',0,'B2'),mk('P','#2ca02c',null,0,'bath P ×10')],{legend:'lDissol'});
+    const sf=(i)=>100*H.m_sSc[i]/Math.max(H.m_sSc[i]+H.m_lSc[i],1e-9);
+    chartLine('cPhase',[{label:'solid scrap %',color:'#8c564b',data:H.t.map((t,i)=>[t/60,sf(i)])},{label:'liquid steel %',color:'#1f77b4',data:H.t.map((t,i)=>[t/60,100-sf(i)])}],{legend:'lPhase'});
+    chartLine('cSpec',[{label:'total kWh',color:'#111',data:H.t.map((t,i)=>[t/60,H.E_elec[i]+H.E_chem[i]])},mk('spec','#e8930c','right',0,'specific kWh/t')],{legend:'lSpec'});
+    chartLine('cOffgas',[mk('CO_out','#636363',null,0,'CO out kg'),mk('CO2_out','#3182bd',null,0,'CO₂ kg'),mk('O2t','#31a354','right',1,'O₂ Nm³/t')],{legend:'lOffgas'});
+    chartLine('cB23',[mk('basicity','#1f77b4',null,0,'B2 = CaO/SiO₂'),mk('B3','#9467bd',null,1,'B3 = CaO/(SiO₂+Al₂O₃)'),mk('lime_und','#e8930c','right',0,'undissolved lime kg')],{legend:'lB23'});
+    chartLine('cFoamFeO',[mk('FeO','#d62728',null,0,'slag FeO %'),mk('foam','#7b3294','right',1,'foam index')],{legend:'lFoamFeO'});
+    document.getElementById('finalSteel').innerHTML='<table><tbody>'+
+      [['Mass',(f.steel/1000).toFixed(1)+' t'],['Temp',f.Ttap.toFixed(0)+' °C'],['C',f.C.toFixed(3)+' %'],['Si',f.Si.toFixed(3)+' %'],['Mn',f.Mn.toFixed(3)+' %'],['P',f.P.toFixed(4)+' %']].map(r=>`<tr><td>${r[0]}</td><td style="color:var(--accent2)">${r[1]}</td></tr>`).join('')+'</tbody></table>';
+    const sl=Object.entries(f.slag).filter(e=>e[1]>1);
+    document.getElementById('finalSlag').innerHTML='<table><tbody>'+
+      [['Mass',(f.slagMass/1000).toFixed(2)+' t'],['B2',f.B2.toFixed(2)],['FeO',f.FeO.toFixed(1)+' %']].map(r=>`<tr><td>${r[0]}</td><td style="color:var(--accent2)">${r[1]}</td></tr>`).join('')+
+      sl.map(e=>`<tr><td>${e[0]}</td><td>${e[1].toFixed(0)} kg</td></tr>`).join('')+'</tbody></table>';
+    document.getElementById('finalGas').innerHTML='<table><tbody>'+
+      [['Electrical energy',f.Eelec.toFixed(0)+' kWh ('+(f.Eelec/(f.steel/1000)).toFixed(0)+' kWh/t)'],
+       ['Chemical energy',f.Echem.toFixed(0)+' kWh'],['Oxygen used',f.O2.toFixed(0)+' Nm³'],
+       ['Electrode',f.electrode.toFixed(0)+' kg'],['Power-on time',f.powerOn.toFixed(1)+' min'],
+       ['Shell temp',f.shell.toFixed(0)+' °C'],['Wall/panel/off-gas loss',`${f.wall.toFixed(0)}/${f.panel.toFixed(0)}/${f.offg.toFixed(0)} kW`]]
+      .map(r=>`<tr><td>${r[0]}</td><td style="color:var(--accent2)">${r[1]}</td></tr>`).join('')+'</tbody></table>';
+    renderEvents(r.events);updateSchematic(f,r.reached?'heat complete — tapped':'end of run');
+    document.getElementById('dynStatus').textContent=`done · ${r.events.length} events · ${r.reached?'endpoint reached':'endpoint NOT reached'}`;
+    if(!noSwitch)switchTab('dynamic');
+  },30);}
+
+function renderEvents(ev){const cls=p=>p==='Charge'?'b-charge':(p.indexOf('Flat')>=0||p==='TAP'?'b-ok':'b-phase');
+  document.getElementById('eventBody').innerHTML=ev.map(e=>`<tr><td><b>${(e.t/60).toFixed(1)} min</b></td>
+    <td><span class="badge ${cls(e.phase)}">${e.phase}</span></td><td>${e.event}</td><td class="small">${e.detail}</td></tr>`).join('');}
+
+function switchTab(id){document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.tab===id));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.id==='tab-'+id));window.scrollTo(0,0);}
+function resetParams(){PARAMS=defaultParams();PMETA.forEach(m=>{document.getElementById('in_'+m[0]).value=m[6];});buildRefBar(PARAMS);document.getElementById('inputStatus').textContent='Reset to defaults.';}
+function loadPreset(name){resetParams();const P={lowC:{target_carbon:0.05,oxygen_flow_rate:4300,injected_carbon:1400},
+  dri:{dri_mass:55,dri_metallization:88,dri_carbon:1.5,dri_gangue:6,scrap_charge_mass:90,lime_charged:4400,dolomite_charged:1700},
+  hotmetal:{hot_metal_mass:35,hot_metal_carbon:4.3,scrap_charge_mass:100,oxygen_flow_rate:4600,lime_charged:3400}}[name];
+  for(const k in P){PARAMS[k]=P[k];const el=document.getElementById('in_'+k);if(el)el.value=P[k];}
+  buildRefBar(PARAMS);document.getElementById('inputStatus').textContent='Preset loaded: '+name+'. Run static or dynamic.';}
+
+document.querySelectorAll('nav button').forEach(b=>b.addEventListener('click',()=>switchTab(b.dataset.tab)));
+buildInputs();buildSchematic();buildRefBar(PARAMS);
+runStaticUI(true);runDynamicUI(true);buildHelp();switchTab('schematic');
+</script>
+</body>
+</html>
