@@ -9,11 +9,22 @@ from parameters import default_parameters
 from static_model import StaticEAFModel
 from dynamic_model import DynamicEAFModel
 from diagnostics import Diagnostics
+import sensitivity as S
 
 plt.style.use('dark_background')
 
 # 1. Custom CSS and Layout
 st.set_page_config(page_title="SmartEAF™ — EAF Digital Twin & Process Optimizer", layout="wide")
+
+SENS_STUDIES = {
+    "Static: energy vs hot metal":     ("static", "elec_kwh_t"),
+    "Static: energy vs charge carbon": ("static", "elec_kwh_t"),
+    "Static: basicity vs lime":        ("static", "basicity"),
+    "Static: tornado (energy)":        ("static", "tornado"),
+    "Dynamic: tap-to-tap vs power":    ("dynamic", "taptap_min"),
+    "Dynamic: energy vs oxygen flow":  ("dynamic", "elec_kwh_t"),
+    "Dynamic: tornado (energy)":       ("dynamic", "tornado"),
+}
 
 st.markdown("""
 <style>
@@ -167,7 +178,8 @@ tabs = st.tabs([
     "✎ Inputs / Parameters", 
     "▤ Static Model", 
     "▶ Dynamic Model", 
-    "☰ Event Log", 
+    "☰ Event Log",
+    "📈 EDA & Sensitivity",
     "? Help & Model"
 ])
 
@@ -273,11 +285,51 @@ with tabs[2]:
     if st.session_state.last_static:
         res = st.session_state.last_static
         st.markdown(f"**Steel tapped**: {res.steel_mass/1000:.1f} t | **Electrical energy**: {res.electrical_energy_specific:.0f} kWh/t | **Basicity**: {res.basicity_B2:.2f}")
-        col1, col2 = st.columns(2)
+        
+        # Grid g3 (Data/EDA charts matching HTML)
+        col1, col2, col3 = st.columns(3)
         with col1:
-            st.text(res.summary())
+            st.markdown("### Energy demand (sinks)")
+            if res.energy_sinks:
+                fig, ax = plt.subplots(figsize=(4, 3)); fig.patch.set_facecolor("#1b2836"); ax.set_facecolor("#1b2836")
+                sizes = list(res.energy_sinks.values())
+                labels = [k if v > 0.05*sum(sizes) else "" for k, v in res.energy_sinks.items()]
+                ax.pie(sizes, labels=labels, autopct=lambda p: f'{p:.1f}%' if p > 5 else '', textprops={'color':"w", 'fontsize':8})
+                st.pyplot(fig)
         with col2:
+            st.markdown("### Non-electrical (sources)")
+            if res.energy_sources:
+                fig, ax = plt.subplots(figsize=(4, 3)); fig.patch.set_facecolor("#1b2836"); ax.set_facecolor("#1b2836")
+                sizes = list(res.energy_sources.values())
+                labels = [k if v > 0.05*sum(sizes) else "" for k, v in res.energy_sources.items()]
+                ax.pie(sizes, labels=labels, autopct=lambda p: f'{p:.1f}%' if p > 5 else '', textprops={'color':"w", 'fontsize':8})
+                st.pyplot(fig)
+        with col3:
+            st.markdown("### Final slag composition")
+            if res.slag:
+                fig, ax = plt.subplots(figsize=(4, 3)); fig.patch.set_facecolor("#1b2836"); ax.set_facecolor("#1b2836")
+                sizes = list(res.slag.values())
+                labels = [k if v > 0.05*sum(sizes) else "" for k, v in res.slag.items()]
+                ax.pie(sizes, labels=labels, autopct=lambda p: f'{p:.1f}%' if p > 5 else '', textprops={'color':"w", 'fontsize':8})
+                st.pyplot(fig)
+                
+        # Grid g2 (Mass and Tables)
+        col4, col5 = st.columns(2)
+        with col4:
+            st.markdown("### Mass Balance")
+            mass_in = st.session_state.reg.get("scrap_charge_mass").value*1000 + st.session_state.reg.get("dri_mass").value*1000 + st.session_state.reg.get("hot_metal_mass").value*1000 + st.session_state.reg.get("lime_charged").value + st.session_state.reg.get("dolomite_charged").value
+            mass_out = res.steel_mass + res.slag_mass + res.offgas_mass + res.dust_mass
+            fig, ax = plt.subplots(figsize=(5, 3.5)); fig.patch.set_facecolor("#1b2836"); ax.set_facecolor("#1b2836")
+            ax.bar(["Inputs", "Outputs (Calculated)"], [mass_in, mass_out], color=["#00b4d8", "#ffb703"])
+            ax.set_ylabel("Mass (kg)")
+            ax.tick_params(colors='w')
+            st.pyplot(fig)
             st.text(res.energy_breakdown())
+        with col5:
+            st.markdown("### Tapped-steel composition & balance")
+            st.text(res.summary())
+            st.dataframe(pd.DataFrame(list(res.tap_composition.items()), columns=["Element", "wt-%"]))
+
     else:
         st.info("Run Static model to see results.")
 
@@ -293,8 +345,33 @@ with tabs[3]:
         st_final = res.final
         st.markdown(f"**Endpoint**: {st_final.T_lSc-273.15:.0f} degC / {st_final.pct['C']:.3f}% C | **Tap-to-tap**: {res.tap_to_tap_min:.1f} min | **Energy**: {st_final.E_elec_MJ/3.6/(st_final.m_lSc/1000):.0f} kWh/t")
         st.text(res.summary())
+        
+        # Original 12-panel (serves as the 14-panel grid from HTML)
         fig = res.figure(figsize=(15, 10))
         st.pyplot(fig)
+        
+        # HTML tables (Final tapped steel, Final slag, Off-gas & balance)
+        st.markdown("---")
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.markdown("### Final tapped steel")
+            st.write(f"**Mass**: {st_final.m_lSc/1000:.1f} t")
+            st.write(f"**Temperature**: {st_final.T_lSc-273.15:.0f} °C")
+            df_s = pd.DataFrame([(k, v) for k,v in st_final.pct.items()], columns=["Element", "wt-%"])
+            st.dataframe(df_s, width=300)
+        with col2:
+            st.markdown("### Final slag")
+            st.write(f"**Mass**: {st_final.slag_mass/1000:.1f} t")
+            st.write(f"**Basicity B2**: {st_final.basicity:.2f}")
+            st.write(f"**Foam Index**: {st_final.foam_index:.2f}")
+            df_sl = pd.DataFrame([(k, v) for k,v in st_final.slag_wt_pct.items()], columns=["Oxide", "wt-%"])
+            st.dataframe(df_sl, width=300)
+        with col3:
+            st.markdown("### Off-gas & balance")
+            tot_e = st_final.E_elec_MJ/3.6/(st_final.m_lSc/1000)
+            st.write(f"**Total Specific Energy**: {tot_e:.0f} kWh/t")
+            st.write(f"**Total CO**: {st_final.mass_offgas['CO']:.1f} kg")
+            st.write(f"**Total CO2**: {st_final.mass_offgas['CO2']:.1f} kg")
     else:
         st.info("Run Dynamic model to see results.")
 
@@ -308,16 +385,86 @@ with tabs[4]:
         if events:
             df = pd.DataFrame(events)
             df['t'] = df['t'].apply(lambda x: f"{x/60:.1f} min")
-            st.dataframe(df, use_container_width=True)
+            st.dataframe(df, width=900)
         else:
             st.write("No events recorded.")
     else:
         st.info("Run Dynamic model to see event log.")
 
 # -----------------
-# TAB 6: Help
+# TAB 6: EDA & Sensitivity
 # -----------------
 with tabs[5]:
+    st.markdown("### Exploratory Data Analysis & Sensitivity Studies")
+    study_choice = st.selectbox("Study:", list(SENS_STUDIES.keys()))
+    if st.button("Generate Sensitivity Study"):
+        with st.spinner(f"Computing sensitivity study '{study_choice}'..."):
+            try:
+                apply_changes(param_inputs)
+                kind, metric = SENS_STUDIES[study_choice]
+                
+                fig = Figure(figsize=(9.6, 5.6))
+                ax = fig.add_subplot(111)
+                
+                if metric == "tornado":
+                    if kind == "static":
+                        params = ["hot_metal_mass", "charge_carbon", "natural_gas",
+                                  "lime_charged", "iron_oxidation_fraction",
+                                  "power_off_time", "target_tap_temperature",
+                                  "electrical_efficiency", "arc_transfer_efficiency",
+                                  "post_combustion_ratio"]
+                    else:
+                        params = ["transformer_power", "oxygen_flow_rate",
+                                  "injected_carbon", "arc_transfer_efficiency",
+                                  "electrical_efficiency", "panel_heat_loss",
+                                  "power_off_time", "scrap_melt_htc",
+                                  "post_combustion_ratio"]
+                    rows, base = S.tornado(kind, params, "elec_kwh_t", pct=0.20)
+                    names = [r[0] for r in rows][::-1]
+                    for i, r in enumerate(rows[::-1]):
+                        left, right = sorted([r[1], r[2]])
+                        ax.barh(i, right - left, left=left, color="#4C78A8",
+                                edgecolor="k", alpha=0.85)
+                    ax.axvline(base, color="crimson", lw=2, label=f"baseline={base:.1f}")
+                    ax.set_yticks(range(len(names))); ax.set_yticklabels(names, fontsize=8)
+                    ax.set_xlabel("electrical energy (kWh/t)"); ax.legend(fontsize=8)
+                    ax.set_title(study_choice)
+                else:
+                    if study_choice == "Static: energy vs hot metal":
+                        x = list(np.linspace(0, 40, 10))
+                        y = S.sweep_static("hot_metal_mass", x, ["elec_kwh_t"])["elec_kwh_t"]
+                        xlabel, ylabel = "hot metal charge (t)", "electrical energy (kWh/t)"
+                    elif study_choice == "Static: energy vs charge carbon":
+                        x = list(np.linspace(0, 3000, 10))
+                        y = S.sweep_static("charge_carbon", x, ["elec_kwh_t"])["elec_kwh_t"]
+                        xlabel, ylabel = "charge carbon (kg)", "electrical energy (kWh/t)"
+                    elif study_choice == "Static: basicity vs lime":
+                        x = list(np.linspace(500, 4000, 10))
+                        y = S.sweep_static("lime_charged", x, ["basicity"])["basicity"]
+                        xlabel, ylabel = "lime charged (kg)", "slag basicity B2"
+                    elif study_choice == "Dynamic: tap-to-tap vs power":
+                        x = list(np.linspace(55, 115, 8))
+                        y = S.sweep_dynamic("transformer_power", x, ["taptap_min"])["taptap_min"]
+                        xlabel, ylabel = "transformer power (MW)", "tap-to-tap (min)"
+                    elif study_choice == "Dynamic: energy vs oxygen flow":
+                        x = list(np.linspace(1500, 5000, 8))
+                        y = S.sweep_dynamic("oxygen_flow_rate", x, ["elec_kwh_t"])["elec_kwh_t"]
+                        xlabel, ylabel = "oxygen flow (Nm3/h)", "electrical energy (kWh/t)"
+                    
+                    ax.plot(x, y, "o-", color="#00b4d8")
+                    ax.set_xlabel(xlabel); ax.set_ylabel(ylabel)
+                    ax.set_title(study_choice)
+                    ax.grid(alpha=0.3)
+                
+                fig.tight_layout()
+                st.pyplot(fig)
+            except Exception as e:
+                st.error(f"Error computing sensitivity: {e}")
+
+# -----------------
+# TAB 7: Help
+# -----------------
+with tabs[6]:
     st.markdown("""
     ### About SmartEAF™
     SmartEAF™ is a first-principles digital twin of the electric arc furnace developed by **Extractmet Private Limited**. It couples a per-heat **static mass & energy balance** with a time-resolved **dynamic model**.
