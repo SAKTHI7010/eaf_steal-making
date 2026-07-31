@@ -317,7 +317,7 @@ with tabs[2]:
         col4, col5 = st.columns(2)
         with col4:
             st.markdown("### Mass Balance")
-            mass_in = st.session_state.reg.get("scrap_charge_mass").value*1000 + st.session_state.reg.get("dri_mass").value*1000 + st.session_state.reg.get("hot_metal_mass").value*1000 + st.session_state.reg.get("lime_charged").value + st.session_state.reg.get("dolomite_charged").value
+            mass_in = st.session_state.reg.get("scrap_charge_mass")*1000 + st.session_state.reg.get("dri_mass")*1000 + st.session_state.reg.get("hot_metal_mass")*1000 + st.session_state.reg.get("lime_charged") + st.session_state.reg.get("dolomite_charged")
             mass_out = res.steel_mass + res.slag_mass + res.offgas_mass + res.dust_mass
             fig, ax = plt.subplots(figsize=(5, 3.5)); fig.patch.set_facecolor("#1b2836"); ax.set_facecolor("#1b2836")
             ax.bar(["Inputs", "Outputs (Calculated)"], [mass_in, mass_out], color=["#00b4d8", "#ffb703"])
@@ -364,7 +364,7 @@ with tabs[3]:
             st.write(f"**Mass**: {st_final.slag_mass/1000:.1f} t")
             st.write(f"**Basicity B2**: {st_final.basicity:.2f}")
             st.write(f"**Foam Index**: {st_final.foam_index:.2f}")
-            df_sl = pd.DataFrame([(k, v) for k,v in st_final.slag_wt_pct.items()], columns=["Oxide", "wt-%"])
+            df_sl = pd.DataFrame([(k, v/st_final.slag_mass*100) for k,v in st_final.slag.items()], columns=["Oxide", "wt-%"])
             st.dataframe(df_sl, width=300)
         with col3:
             st.markdown("### Off-gas & balance")
