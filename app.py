@@ -370,8 +370,8 @@ with tabs[3]:
             st.markdown("### Off-gas & balance")
             tot_e = st_final.E_elec_MJ/3.6/(st_final.m_lSc/1000)
             st.write(f"**Total Specific Energy**: {tot_e:.0f} kWh/t")
-            st.write(f"**Total CO**: {st_final.mass_offgas['CO']:.1f} kg")
-            st.write(f"**Total CO2**: {st_final.mass_offgas['CO2']:.1f} kg")
+            st.write(f"**Total CO**: {st_final.offgas['CO']:.1f} kg")
+            st.write(f"**Total CO2**: {st_final.offgas['CO2']:.1f} kg")
     else:
         st.info("Run Dynamic model to see results.")
 
