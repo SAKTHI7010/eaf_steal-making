@@ -9,28 +9,61 @@ from parameters import default_parameters
 from static_model import StaticEAFModel
 from dynamic_model import DynamicEAFModel
 from diagnostics import Diagnostics
-import sensitivity as S
 
 plt.style.use('dark_background')
 
-st.set_page_config(page_title="EAF Operator Desk", layout="wide")
+# 1. Custom CSS and Layout
+st.set_page_config(page_title="SmartEAF™ — EAF Digital Twin & Process Optimizer", layout="wide")
 
-SENS_STUDIES = {
-    "Static: energy vs hot metal":     ("static", "elec_kwh_t"),
-    "Static: energy vs charge carbon": ("static", "elec_kwh_t"),
-    "Static: basicity vs lime":        ("static", "basicity"),
-    "Static: tornado (energy)":        ("static", "tornado"),
-    "Dynamic: tap-to-tap vs power":    ("dynamic", "taptap_min"),
-    "Dynamic: energy vs oxygen flow":  ("dynamic", "elec_kwh_t"),
-    "Dynamic: tornado (energy)":       ("dynamic", "tornado"),
+st.markdown("""
+<style>
+/* Custom CSS to mimic smarteaf_web.html */
+:root {
+  --bg:#0e1620; --bg2:#16212e; --panel:#1b2836; --panel2:#22323f;
+  --ink:#e7eef5; --dim:#9fb3c8; --line:#2c3d4d;
+  --accent:#00b4d8; --accent2:#48cae4; --gold:#ffb703;
 }
+.stApp {
+    background-color: #0e1620;
+    color: #e7eef5;
+}
+header {
+    background: linear-gradient(90deg,#0b1017,#16212e);
+    border-bottom: 2px solid #00b4d8;
+    padding: 10px 18px;
+    display: flex; align-items: center; gap: 14px;
+}
+.logo {
+    background: #00b4d8; color: #062733; font-weight: 800; padding: 6px 12px; border-radius: 6px; font-size: 18px; letter-spacing: 1px;
+}
+.title-box h1 { font-size: 17px; margin: 0; font-weight: 700; color: #e7eef5; line-height: 1.2; }
+.title-box .sub { color: #9fb3c8; font-size: 12px; }
+.spacer { flex: 1; }
+.co { color: #ffb703; font-weight: 700; font-size: 13px; }
+/* Override default Streamlit padding */
+.block-container {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+}
+</style>
+""", unsafe_allow_html=True)
 
+# 2. Header
+st.markdown("""
+<header>
+  <div class="logo">SmartEAF™</div>
+  <div class="title-box"><h1>Electric Arc Furnace — Digital Twin & Process Optimizer</h1>
+    <div class="sub">Static & dynamic first-principles model · operator decision support · Reference: Industry-X</div></div>
+  <div class="spacer"></div>
+  <div class="co">Extractmet Private Limited</div>
+</header>
+""", unsafe_allow_html=True)
+
+# Setup Session State
 if 'reg' not in st.session_state:
     st.session_state.reg = default_parameters()
-    
 if 'last_static' not in st.session_state:
     st.session_state.last_static = None
-
 if 'last_dynamic' not in st.session_state:
     st.session_state.last_dynamic = None
 
@@ -43,8 +76,27 @@ def apply_changes(updated_vals):
     else:
         st.success("Parameters applied successfully.")
 
+def run_static(param_inputs):
+    apply_changes(param_inputs)
+    try:
+        res = StaticEAFModel(st.session_state.reg).solve()
+        st.session_state.last_static = res
+        st.success(f"Static done: {res.steel_mass/1000:.1f} t tapped, {res.electrical_energy_specific:.0f} kWh/t, B2 {res.basicity_B2:.2f}.")
+    except Exception as e:
+        st.error(f"Static model error: {e}")
+
+def run_dynamic(param_inputs):
+    apply_changes(param_inputs)
+    try:
+        res = DynamicEAFModel(st.session_state.reg).simulate(mode="endpoint")
+        st.session_state.last_dynamic = res
+        st_final = res.final
+        st.success(f"Dynamic done: tap {st_final.T_lSc-273.15:.0f} degC / C {st_final.pct['C']:.3f}%, {res.tap_to_tap_min:.1f} min, {st_final.E_elec_MJ/3.6/(st_final.m_lSc/1000):.0f} kWh/t.")
+    except Exception as e:
+        st.error(f"Dynamic model error: {e}")
+
 def draw_schematic(res):
-    st_final = res.final
+    st_final = res.final if res else None
     fig = Figure(figsize=(9.2, 6.3))
     ax = fig.add_subplot(111)
     ax.set_xlim(0, 10); ax.set_ylim(0, 8); ax.axis("off"); ax.set_aspect("equal")
@@ -59,11 +111,17 @@ def draw_schematic(res):
                          ec="#7a5a3a", lw=9, alpha=0.85))
     ax.plot([1.4, 5, 8.6], [6.4, 7.05, 6.4], color="#4a5a6a", lw=6)
     
-    # bath + slag (slag thickness ~ foam index)
-    ax.add_patch(Polygon([(2.15, 3.0), (2.3, 1.75), (7.7, 1.75), (7.85, 3.0)],
-                         closed=True, fc="#c94f2a", ec="none"))
-    th = 0.15 + st_final.foam_index * 0.5
-    ax.add_patch(Rectangle((2.2, 3.0), 5.6, th, fc="#6aa84f", ec="none", alpha=0.9))
+    if st_final:
+        # bath + slag (slag thickness ~ foam index)
+        ax.add_patch(Polygon([(2.15, 3.0), (2.3, 1.75), (7.7, 1.75), (7.85, 3.0)],
+                             closed=True, fc="#c94f2a", ec="none"))
+        th = 0.15 + st_final.foam_index * 0.5
+        ax.add_patch(Rectangle((2.2, 3.0), 5.6, th, fc="#6aa84f", ec="none", alpha=0.9))
+    else:
+        # default bath
+        ax.add_patch(Polygon([(2.15, 3.0), (2.3, 1.75), (7.7, 1.75), (7.85, 3.0)],
+                             closed=True, fc="#c94f2a", ec="none"))
+        ax.add_patch(Rectangle((2.2, 3.0), 5.6, 0.15, fc="#6aa84f", ec="none", alpha=0.9))
     
     # electrodes + arcs
     for x in (4.1, 5.0, 5.9):
@@ -82,212 +140,169 @@ def draw_schematic(res):
     ax.add_patch(Polygon([(5, 1.2), (4.7, 0.65), (5.3, 0.65)], closed=True, fc="#c94f2a"))
     ax.text(5, 0.35, "EBT tap", color="#8ba0b4", fontsize=8, ha="center")
     
-    # live readout panel
-    info = "\n".join([
-        f"Tap T : {st_final.T_lSc-273.15:6.0f} degC",
-        f"Carbon: {st_final.pct['C']:6.3f} %",
-        f"B2    : {st_final.basicity:6.2f}",
-        f"FeO   : {st_final.feo_pct:6.0f} %",
-        f"Foam  : {st_final.foam_index:6.2f}",
-        f"Shell : {st_final.shell_temp_C:6.0f} degC",
-        f"Steel : {st_final.m_lSc/1000:6.1f} t",
-        f"Slag  : {st_final.slag_mass/1000:6.2f} t"])
-    ax.text(0.12, 7.8, info, color="#48cae4", fontsize=9, family="monospace",
-            va="top", ha="left",
-            bbox=dict(boxstyle="round", fc="#16212e", ec="#2c3d4d"))
-    ax.text(5, 7.5, "Industry-X EAF  —  "
-            + ("endpoint reached" if res.reached_endpoint else "end of run"),
-            color="#ffb703", fontsize=12, ha="center", fontweight="bold")
+    if st_final:
+        # live readout panel
+        info = "\n".join([
+            f"Tap T : {st_final.T_lSc-273.15:6.0f} degC",
+            f"Carbon: {st_final.pct['C']:6.3f} %",
+            f"B2    : {st_final.basicity:6.2f}",
+            f"FeO   : {st_final.feo_pct:6.0f} %",
+            f"Foam  : {st_final.foam_index:6.2f}",
+            f"Shell : {st_final.shell_temp_C:6.0f} degC",
+            f"Steel : {st_final.m_lSc/1000:6.1f} t",
+            f"Slag  : {st_final.slag_mass/1000:6.2f} t"])
+        ax.text(0.12, 7.8, info, color="#48cae4", fontsize=9, family="monospace",
+                va="top", ha="left",
+                bbox=dict(boxstyle="round", fc="#16212e", ec="#2c3d4d"))
+        ax.text(5, 7.5, "Industry-X EAF  —  "
+                + ("endpoint reached" if res.reached_endpoint else "end of run"),
+                color="#ffb703", fontsize=12, ha="center", fontweight="bold")
     ax.text(6.8, 6.7, "3x graphite\nelectrodes", color="#9fb3c8", fontsize=8)
     fig.tight_layout()
     return fig
 
-# UI Sidebar
-st.sidebar.title("⚙️ Operating Parameters")
-if st.sidebar.button("Reset defaults"):
-    st.session_state.reg.reset_all()
-
-st.sidebar.markdown("---")
-param_inputs = {}
-for name in st.session_state.reg.names("operating"):
-    p = st.session_state.reg[name]
-    
-    if isinstance(p.value, bool):
-        val = st.sidebar.checkbox(f"{name} ({p.unit})", value=p.value, help=p.help)
-    elif isinstance(p.value, int) and not isinstance(p.value, bool):
-        val = st.sidebar.number_input(f"{name} ({p.unit})", value=int(p.value), help=p.help)
-    elif isinstance(p.value, float):
-        val = st.sidebar.number_input(f"{name} ({p.unit})", value=float(p.value), help=p.help)
-    elif isinstance(p.value, dict):
-        val = st.sidebar.text_input(f"{name} ({p.unit})", value=" ".join(f"{k}={v:g}" for k, v in p.value.items()), help=p.help)
-    else:
-        val = st.sidebar.text_input(f"{name} ({p.unit})", value=str(p.value), help=p.help)
-    
-    # Convert dicts
-    if isinstance(p.value, dict) and isinstance(val, str):
-        try:
-            out = dict(p.value)
-            for pair in val.replace(",", " ").split():
-                if "=" in pair or ":" in pair:
-                    sep = "=" if "=" in pair else ":"
-                    k, v = pair.split(sep)
-                    out[k.strip()] = float(v)
-            param_inputs[name] = out
-        except:
-            param_inputs[name] = p.value
-    else:
-        param_inputs[name] = val
-
-
-# Top Toolbar Area
-col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
-with col1:
-    st.markdown("### EAF Control Model")
-with col2:
-    if st.button("Apply Changes", type="primary", use_container_width=True):
-        apply_changes(param_inputs)
-with col3:
-    if st.button("Run STATIC", use_container_width=True):
-        apply_changes(param_inputs)
-        try:
-            res = StaticEAFModel(st.session_state.reg).solve()
-            st.session_state.last_static = res
-            st.success(f"Static done: {res.steel_mass/1000:.1f} t tapped, {res.electrical_energy_specific:.0f} kWh/t, B2 {res.basicity_B2:.2f}.")
-        except Exception as e:
-            st.error(f"Static model error: {e}")
-
-with col4:
-    if st.button("Run DYNAMIC", use_container_width=True):
-        apply_changes(param_inputs)
-        try:
-            res = DynamicEAFModel(st.session_state.reg).simulate(mode="endpoint")
-            st.session_state.last_dynamic = res
-            st_final = res.final
-            st.success(f"Dynamic done: tap {st_final.T_lSc-273.15:.0f} degC / C {st_final.pct['C']:.3f}%, {res.tap_to_tap_min:.1f} min, {st_final.E_elec_MJ/3.6/(st_final.m_lSc/1000):.0f} kWh/t.")
-        except Exception as e:
-            st.error(f"Dynamic model error: {e}")
-
-
-# Main Content Area
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
-    "Static result", "Dynamic result", "Guidance", "Sensitivity", "Reactor schematic", "Event log"
+# 3. Tabs Setup
+tabs = st.tabs([
+    "⚙ Reactor Schematic", 
+    "✎ Inputs / Parameters", 
+    "▤ Static Model", 
+    "▶ Dynamic Model", 
+    "☰ Event Log", 
+    "? Help & Model"
 ])
 
-with tab1:
+# For inputs, we define parameter groupings
+categories = {
+    "Charge": ["scrap_charge_mass", "scrap_C", "scrap_Si", "scrap_Mn", "scrap_P", "scrap_S", "scrap_Cu", "dirt_silica", "dri_mass", "dri_metallization", "dri_carbon", "dri_gangue", "hot_metal_mass", "hot_metal_carbon", "hot_metal_temperature", "scrap_rust_feo"],
+    "Fluxes & additions": ["lime_charged", "dolomite_charged", "charge_carbon", "injected_carbon"],
+    "Oxygen & burners": ["oxygen_total", "oxygen_flow_rate", "natural_gas"],
+    "Electrical & timing": ["transformer_power", "power_on_time", "power_off_time"],
+    "Targets": ["target_tap_temperature", "target_carbon", "target_basicity"],
+    "Furnace & refractory": ["furnace_capacity", "refractory_area", "working_lining_thickness", "working_lining_k", "safety_lining_thickness", "safety_lining_k", "insulation_thickness", "insulation_k", "shell_thickness", "shell_k", "shell_emissivity", "convection_coefficient", "panel_heat_loss", "offgas_temperature", "ambient_temperature"],
+    "Efficiencies & kinetics": ["electrical_efficiency", "arc_transfer_efficiency", "arc_transfer_bare", "post_combustion_ratio", "post_combustion_efficiency", "electrode_consumption_rate", "iron_oxidation_fraction", "dust_rate", "mn_slag_partition", "decarb_critical_carbon", "decarb_mass_transfer_coeff", "scrap_melt_htc", "lime_dissolution_rate", "si_removal_rate", "mn_removal_rate", "p_removal_rate", "feo_reduction_rate", "feo_equilibrium_factor", "slag_feo_max", "decarb_o2_efficiency_max", "foaming_co_reference", "sim_timestep"]
+}
+
+# Collect param_inputs globally from session state since streamlit re-runs entirely
+param_inputs = {}
+
+# -----------------
+# TAB 1: Schematic
+# -----------------
+with tabs[0]:
+    st.markdown("""
+    <div style='background:linear-gradient(135deg,#15222f,#0d1620);border:1px solid #2c3d4d;border-radius:12px;padding:18px;margin-bottom:14px;'>
+        <h2 style='margin:0 0 6px;font-size:20px;color:#e7eef5;'>Industry-X Electric Arc Furnace <span style='display:inline-block;background:#00b4d8;color:#062733;font-size:10px;font-weight:800;padding:2px 8px;border-radius:4px;vertical-align:middle;margin-left:8px;'>LIVE DIGITAL TWIN</span></h2>
+        <p style='margin:0;color:#9fb3c8;font-size:13px;line-height:1.6;'>Interactive cross-section of the EAF reactor. Values update from the latest simulation. Run the <b>Dynamic Model</b> to animate the heat and populate live readouts, or the <b>Static Model</b> for a per-heat balance.</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    col1, col2 = st.columns([1.35, 1])
+    with col1:
+        st.markdown("### Furnace cross-section")
+        fig = draw_schematic(st.session_state.last_dynamic)
+        st.pyplot(fig)
+    with col2:
+        st.markdown("### Live process readout")
+        if st.session_state.last_dynamic:
+            st.text(st.session_state.last_dynamic.summary())
+        else:
+            st.info("Run Dynamic model to see readout.")
+
+# -----------------
+# TAB 2: Inputs
+# -----------------
+with tabs[1]:
+    # Action Toolbar
+    st.markdown("### Actions & Presets")
+    col1, col2, col3, col4, col5, col6 = st.columns(6)
+    if col1.button("▤ Run Static"): run_static(param_inputs)
+    if col2.button("▶ Run Dynamic"): run_dynamic(param_inputs)
+    if col3.button("↺ Reset defaults"): st.session_state.reg.reset_all(); st.rerun()
+    if col4.button("Preset: Low-C"):
+        st.session_state.reg.set("target_carbon", 0.04)
+        st.session_state.reg.set("oxygen_total", 5000)
+        st.rerun()
+    if col5.button("Preset: High-DRI"):
+        st.session_state.reg.set("dri_mass", 60.0)
+        st.session_state.reg.set("scrap_charge_mass", 60.0)
+        st.rerun()
+    if col6.button("Preset: Hot-metal"):
+        st.session_state.reg.set("hot_metal_mass", 40.0)
+        st.session_state.reg.set("scrap_charge_mass", 100.0)
+        st.rerun()
+    
+    st.markdown("---")
+    
+    # Input parameters
+    for cat, keys in categories.items():
+        with st.expander(f"▸ {cat}", expanded=True):
+            cols = st.columns(3)
+            for i, name in enumerate(keys):
+                if name in st.session_state.reg._params:
+                    p = st.session_state.reg[name]
+                    c = cols[i % 3]
+                    help_txt = p.help
+                    if isinstance(p.value, bool):
+                        val = c.checkbox(f"{name} ({p.unit})", value=p.value, help=help_txt, key=name)
+                    elif isinstance(p.value, int) and not isinstance(p.value, bool):
+                        val = c.number_input(f"{name} ({p.unit})", value=int(p.value), help=help_txt, key=name)
+                    elif isinstance(p.value, float):
+                        val = c.number_input(f"{name} ({p.unit})", value=float(p.value), help=help_txt, key=name)
+                    elif isinstance(p.value, dict):
+                        val_str = c.text_input(f"{name} ({p.unit})", value=" ".join(f"{k}={v:g}" for k, v in p.value.items()), help=help_txt, key=name)
+                        try:
+                            val = dict(p.value)
+                            for pair in val_str.replace(",", " ").split():
+                                if "=" in pair or ":" in pair:
+                                    sep = "=" if "=" in pair else ":"
+                                    k, v = pair.split(sep)
+                                    val[k.strip()] = float(v)
+                        except:
+                            val = p.value
+                    else:
+                        val = c.text_input(f"{name} ({p.unit})", value=str(p.value), help=help_txt, key=name)
+                    param_inputs[name] = val
+
+# -----------------
+# TAB 3: Static
+# -----------------
+with tabs[2]:
+    if st.button("▤ Run Static Mass & Energy Balance"):
+        run_static(param_inputs)
+        
     if st.session_state.last_static:
         res = st.session_state.last_static
-        st.text(res.summary())
-        st.text(res.energy_breakdown())
+        st.markdown(f"**Steel tapped**: {res.steel_mass/1000:.1f} t | **Electrical energy**: {res.electrical_energy_specific:.0f} kWh/t | **Basicity**: {res.basicity_B2:.2f}")
+        col1, col2 = st.columns(2)
+        with col1:
+            st.text(res.summary())
+        with col2:
+            st.text(res.energy_breakdown())
     else:
         st.info("Run Static model to see results.")
 
-with tab2:
+# -----------------
+# TAB 4: Dynamic
+# -----------------
+with tabs[3]:
+    if st.button("▶ Run Time-Resolved Simulation"):
+        run_dynamic(param_inputs)
+        
     if st.session_state.last_dynamic:
         res = st.session_state.last_dynamic
+        st_final = res.final
+        st.markdown(f"**Endpoint**: {st_final.T_lSc-273.15:.0f} degC / {st_final.pct['C']:.3f}% C | **Tap-to-tap**: {res.tap_to_tap_min:.1f} min | **Energy**: {st_final.E_elec_MJ/3.6/(st_final.m_lSc/1000):.0f} kWh/t")
         st.text(res.summary())
-        fig = res.figure(figsize=(12, 7))
+        fig = res.figure(figsize=(15, 10))
         st.pyplot(fig)
     else:
         st.info("Run Dynamic model to see results.")
 
-with tab3:
-    if st.session_state.last_dynamic or st.session_state.last_static:
-        dg = Diagnostics(st.session_state.reg)
-        if st.session_state.last_dynamic:
-            checks = dg.from_dynamic(st.session_state.last_dynamic)
-            source = "DYNAMIC"
-        else:
-            checks = dg.from_static(st.session_state.last_static)
-            source = "STATIC"
-            
-        n_act = sum(c.status == "ACT" for c in checks)
-        n_watch = sum(c.status == "WATCH" for c in checks)
-        st.subheader(f"{source} guidance — {n_act} action(s), {n_watch} watch")
-        
-        for c in checks:
-            if c.status == "OK":
-                st.success(f"**{c.name}**: {c.value} - {c.message}")
-            elif c.status == "WATCH":
-                st.warning(f"**{c.name}**: {c.value} - {c.message}\n\n*Recommendation*: {c.recommendation}")
-            else:
-                st.error(f"**{c.name}**: {c.value} - {c.message}\n\n*Recommendation*: {c.recommendation}")
-    else:
-        st.info("Run a model to get guidance.")
-
-with tab4:
-    study_choice = st.selectbox("Study:", list(SENS_STUDIES.keys()))
-    if st.button("Generate Sensitivity Study"):
-        with st.spinner(f"Computing sensitivity study '{study_choice}'..."):
-            try:
-                apply_changes(param_inputs)
-                kind, metric = SENS_STUDIES[study_choice]
-                
-                fig = Figure(figsize=(9.6, 5.6))
-                ax = fig.add_subplot(111)
-                
-                if metric == "tornado":
-                    if kind == "static":
-                        params = ["hot_metal_mass", "charge_carbon", "natural_gas",
-                                  "lime_charged", "iron_oxidation_fraction",
-                                  "power_off_time", "target_tap_temperature",
-                                  "electrical_efficiency", "arc_transfer_efficiency",
-                                  "post_combustion_ratio"]
-                    else:
-                        params = ["transformer_power", "oxygen_flow_rate",
-                                  "injected_carbon", "arc_transfer_efficiency",
-                                  "electrical_efficiency", "panel_heat_loss",
-                                  "power_off_time", "scrap_melt_htc",
-                                  "post_combustion_ratio"]
-                    rows, base = S.tornado(kind, params, "elec_kwh_t", pct=0.20)
-                    names = [r[0] for r in rows][::-1]
-                    for i, r in enumerate(rows[::-1]):
-                        left, right = sorted([r[1], r[2]])
-                        ax.barh(i, right - left, left=left, color="#4C78A8",
-                                edgecolor="k", alpha=0.85)
-                    ax.axvline(base, color="crimson", lw=2, label=f"baseline={base:.1f}")
-                    ax.set_yticks(range(len(names))); ax.set_yticklabels(names, fontsize=8)
-                    ax.set_xlabel("electrical energy (kWh/t)"); ax.legend(fontsize=8)
-                    ax.set_title(study_choice)
-                else:
-                    if study_choice == "Static: energy vs hot metal":
-                        x = list(np.linspace(0, 40, 10))
-                        y = S.sweep_static("hot_metal_mass", x, ["elec_kwh_t"])["elec_kwh_t"]
-                        xlabel, ylabel = "hot metal charge (t)", "electrical energy (kWh/t)"
-                    elif study_choice == "Static: energy vs charge carbon":
-                        x = list(np.linspace(0, 3000, 10))
-                        y = S.sweep_static("charge_carbon", x, ["elec_kwh_t"])["elec_kwh_t"]
-                        xlabel, ylabel = "charge carbon (kg)", "electrical energy (kWh/t)"
-                    elif study_choice == "Static: basicity vs lime":
-                        x = list(np.linspace(500, 4000, 10))
-                        y = S.sweep_static("lime_charged", x, ["basicity"])["basicity"]
-                        xlabel, ylabel = "lime charged (kg)", "slag basicity B2"
-                    elif study_choice == "Dynamic: tap-to-tap vs power":
-                        x = list(np.linspace(55, 115, 8))
-                        y = S.sweep_dynamic("transformer_power", x, ["taptap_min"])["taptap_min"]
-                        xlabel, ylabel = "transformer power (MW)", "tap-to-tap (min)"
-                    elif study_choice == "Dynamic: energy vs oxygen flow":
-                        x = list(np.linspace(1500, 5000, 8))
-                        y = S.sweep_dynamic("oxygen_flow_rate", x, ["elec_kwh_t"])["elec_kwh_t"]
-                        xlabel, ylabel = "oxygen flow (Nm3/h)", "electrical energy (kWh/t)"
-                    
-                    ax.plot(x, y, "o-", color="#00b4d8")
-                    ax.set_xlabel(xlabel); ax.set_ylabel(ylabel)
-                    ax.set_title(study_choice)
-                    ax.grid(alpha=0.3)
-                
-                fig.tight_layout()
-                st.pyplot(fig)
-            except Exception as e:
-                st.error(f"Error computing sensitivity: {e}")
-
-with tab5:
-    if st.session_state.last_dynamic:
-        fig = draw_schematic(st.session_state.last_dynamic)
-        st.pyplot(fig)
-    else:
-        st.info("Run Dynamic model to see reactor schematic.")
-
-with tab6:
+# -----------------
+# TAB 5: Event Log
+# -----------------
+with tabs[4]:
+    st.markdown("### Heat event log — additions, phase changes & milestones")
     if st.session_state.last_dynamic:
         events = st.session_state.last_dynamic.events
         if events:
@@ -298,3 +313,18 @@ with tab6:
             st.write("No events recorded.")
     else:
         st.info("Run Dynamic model to see event log.")
+
+# -----------------
+# TAB 6: Help
+# -----------------
+with tabs[5]:
+    st.markdown("""
+    ### About SmartEAF™
+    SmartEAF™ is a first-principles digital twin of the electric arc furnace developed by **Extractmet Private Limited**. It couples a per-heat **static mass & energy balance** with a time-resolved **dynamic model**.
+    
+    #### Modelling basis
+    - **Dynamic zones:** solid scrap, liquid steel, slag and gas, each with its own energy balance.
+    - **Thermochemistry & kinetics:** decarburisation, Si/Mn/P oxidation, FeO formation and carbon reduction.
+    - **Dissolution kinetics:** lime dissolves into the slag over time, scrap melts by immersion.
+    - **Refractory heat loss:** multi-layer 1-D conduction coupled to external convection and radiation.
+    """)
