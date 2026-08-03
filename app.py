@@ -34,21 +34,21 @@ st.markdown("""
     font-family: 'Segoe UI', Roboto, Arial, sans-serif;
 }
 header[data-testid="stHeader"] {
-    background: linear-gradient(90deg,#0b1017,#16212e) !important;
-    border-bottom: 2px solid #00b4d8 !important;
+    display: none !important;
 }
 .block-container {
-    padding-top: 0.5rem;
-    padding-bottom: 1rem;
+    padding-top: 0rem !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
     max-width: 1500px;
 }
 /* ---- custom header banner ---- */
 .eaf-header {
     background: linear-gradient(90deg,#0b1017,#16212e);
     border-bottom: 2px solid var(--accent);
-    padding: 10px 18px;
+    padding: 12px 18px;
     display: flex; align-items: center; gap: 14px;
-    margin: -1rem -1rem 1rem -1rem;
+    margin: 0rem -1rem 1rem -1rem;
 }
 .eaf-logo {
     background: #00b4d8; color: #062733; font-weight: 800;
